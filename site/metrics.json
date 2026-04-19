@@ -1,0 +1,26 @@
+{
+  "ticker": {
+    "items": [
+      { "label": "minority f1",  "value": "≥ 0.72", "framing": "target" },
+      { "label": "ibm baseline", "value": "0.67",    "framing": "baseline" },
+      { "label": "graphsage",    "value": "0.61",    "framing": "baseline" },
+      { "label": "dataset",      "value": "it-aml medium", "framing": "baseline" },
+      { "label": "latency p95",  "value": "< 200 ms", "framing": "target" },
+      { "label": "model",        "value": "hgt-v1",   "framing": "baseline" },
+      { "label": "illicit rate", "value": "1.94 %",   "framing": "baseline" },
+      { "label": "hetzner",      "value": "cpx31 · 16gb", "framing": "baseline" }
+    ]
+  },
+  "highlights": {
+    "baseline": { "label": "IBM multi-GNN", "value": "0.67 F1" },
+    "target":   { "label": "Target",        "value": "≥ 0.72 F1" },
+    "deadline": { "label": "Deadline",      "value": "2026-05-31" }
+  },
+  "modelCard": {
+    "architecture": "HGT (heterogeneous graph transformer)",
+    "params": null,
+    "dataset": "IBM IT-AML Medium",
+    "trainingStatus": "Phase 2 — in progress",
+    "runId": null
+  }
+}
