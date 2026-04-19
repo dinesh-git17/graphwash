@@ -88,3 +88,49 @@ export function validateManifest(manifest, opts) {
 
   return { ok: true };
 }
+
+const FRAMINGS = new Set(['target', 'baseline', 'measured']);
+
+export function validateMetrics(metrics) {
+  if (metrics == null || typeof metrics !== 'object') {
+    throw new Error('metrics must be a non-null object');
+  }
+
+  const { ticker, highlights, modelCard } = metrics;
+
+  if (!ticker || !Array.isArray(ticker.items)) {
+    throw new Error('metrics.ticker.items must be an array');
+  }
+  for (const it of ticker.items) {
+    if (!it || !it.label || !it.value || !FRAMINGS.has(it.framing)) {
+      throw new Error(`metrics.ticker.items entry invalid or missing framing: ${JSON.stringify(it)}`);
+    }
+    if (it.delta !== undefined && it.framing !== 'measured') {
+      throw new Error(`metrics.ticker.items entry has delta but framing !== "measured": ${JSON.stringify(it)}`);
+    }
+  }
+
+  for (const key of ['baseline', 'target', 'deadline']) {
+    const h = highlights?.[key];
+    if (!h || !h.label || !h.value) {
+      throw new Error(`metrics.highlights.${key} missing label/value`);
+    }
+  }
+
+  if (!modelCard || typeof modelCard !== 'object') {
+    throw new Error('metrics.modelCard must be an object');
+  }
+  for (const key of ['architecture', 'dataset', 'trainingStatus']) {
+    if (!modelCard[key]) {
+      throw new Error(`metrics.modelCard.${key} missing`);
+    }
+  }
+  if (!('params' in modelCard)) {
+    throw new Error('metrics.modelCard.params key missing (null allowed)');
+  }
+  if (!('runId' in modelCard)) {
+    throw new Error('metrics.modelCard.runId key missing (null allowed)');
+  }
+
+  return { ok: true };
+}
