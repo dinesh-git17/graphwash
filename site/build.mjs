@@ -1,5 +1,8 @@
 import { marked } from './vendor/marked.esm.js';
 import * as path from 'node:path';
+import * as fs from 'node:fs';
+import * as crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
 
 const BASE_PATH_RE = /^\/(?:[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*\/)?$/;
 const SLUG_SEGMENT_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -233,4 +236,109 @@ export function validateMarkdown(sourceRel, md, opts) {
   }
 
   return { ok: true };
+}
+
+function sha256(s) {
+  return crypto.createHash('sha256').update(s).digest('hex');
+}
+
+function copyDir(src, dst) {
+  if (!fs.existsSync(src)) return;
+  fs.mkdirSync(dst, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name);
+    const d = path.join(dst, entry.name);
+    if (entry.isDirectory()) copyDir(s, d);
+    else fs.copyFileSync(s, d);
+  }
+}
+
+export function main(opts = {}) {
+  const cwd = process.cwd();
+  const repoRoot = opts.repoRoot ?? (cwd.endsWith(path.sep + 'site') ? path.dirname(cwd) : cwd);
+  const siteDir = path.join(repoRoot, 'site');
+  const distDir = path.join(siteDir, '_dist');
+  const docsRoot = path.join(repoRoot, 'docs');
+
+  const manifestText = fs.readFileSync(path.join(siteDir, 'manifest.json'), 'utf8');
+  const manifest = JSON.parse(manifestText);
+  validateManifest(manifest, {
+    docsRoot,
+    sourceExists: (rel) => fs.existsSync(path.join(repoRoot, rel)),
+  });
+
+  const metricsText = fs.readFileSync(path.join(siteDir, 'metrics.json'), 'utf8');
+  const metrics = JSON.parse(metricsText);
+  validateMetrics(metrics);
+
+  for (const d of manifest.docs) {
+    if (!d.source) continue;
+    const abs = path.join(repoRoot, d.source);
+    const md = fs.readFileSync(abs, 'utf8');
+    validateMarkdown(d.source, md, {
+      manifest,
+      docsRoot,
+      pathExists: (p) => fs.existsSync(p),
+    });
+  }
+
+  fs.rmSync(distDir, { recursive: true, force: true });
+  fs.mkdirSync(distDir, { recursive: true });
+
+  const indexHtmlSrc = path.join(siteDir, 'index.html');
+  let indexHtml = fs.readFileSync(indexHtmlSrc, 'utf8');
+  const baseTag = `<base href="${manifest.site.basePath}">`;
+  indexHtml = indexHtml.replace(/<head>/i, `<head>\n  ${baseTag}`);
+  fs.writeFileSync(path.join(distDir, 'index.html'), indexHtml);
+  fs.writeFileSync(path.join(distDir, '404.html'), indexHtml);
+
+  copyDir(path.join(siteDir, 'styles'), path.join(distDir, 'styles'));
+  copyDir(path.join(siteDir, 'scripts'), path.join(distDir, 'scripts'));
+  copyDir(path.join(siteDir, 'assets'), path.join(distDir, 'assets'));
+  fs.writeFileSync(path.join(distDir, 'manifest.json'), manifestText);
+  fs.writeFileSync(path.join(distDir, 'metrics.json'), metricsText);
+
+  const contentDir = path.join(distDir, '_content');
+  fs.mkdirSync(contentDir, { recursive: true });
+  let shippedCount = 0;
+  let placeholderCount = 0;
+  for (const d of manifest.docs) {
+    if (d.source) {
+      const src = path.join(repoRoot, d.source);
+      const dst = path.join(contentDir, d.slug + '.md');
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      fs.copyFileSync(src, dst);
+      shippedCount += 1;
+    } else if (d.status === 'placeholder') {
+      placeholderCount += 1;
+    }
+  }
+
+  let gitSha = 'unknown';
+  try {
+    gitSha = execSync('git rev-parse HEAD', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString().trim();
+  } catch {
+    // not a git checkout or git not installed
+  }
+  const receipt = {
+    builtAt: new Date().toISOString(),
+    gitSha,
+    docCount: shippedCount + placeholderCount,
+    manifestHash: sha256(manifestText),
+    metricsHash: sha256(metricsText),
+  };
+  fs.writeFileSync(path.join(distDir, '_build.json'), JSON.stringify(receipt, null, 2));
+
+  return { ok: true, distDir };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  try {
+    main();
+    console.log('build ok');
+  } catch (err) {
+    console.error('build failed:', err.message);
+    process.exit(1);
+  }
 }
