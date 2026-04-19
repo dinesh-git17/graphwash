@@ -24,6 +24,9 @@ function isNonNegativeInteger(value) {
 }
 
 export function validateManifest(manifest, opts) {
+  if (manifest == null || typeof manifest !== 'object') {
+    throw new Error('manifest must be a non-null object');
+  }
   const { sourceExists } = opts;
 
   if (!manifest.site || !BASE_PATH_RE.test(manifest.site.basePath ?? '')) {
@@ -64,7 +67,7 @@ export function validateManifest(manifest, opts) {
       throw new Error(`doc "${d.slug}" has malformed updated date "${d.updated}"`);
     }
     if (!isNonNegativeInteger(d.order)) {
-      throw new Error(`doc "${d.slug}" has non-integer/non-positive order: ${d.order}`);
+      throw new Error(`doc "${d.slug}" has non-integer or negative order: ${d.order}`);
     }
     const isPlaceholder = d.status === 'placeholder';
     if (!isPlaceholder) {

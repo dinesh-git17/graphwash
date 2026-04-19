@@ -119,3 +119,11 @@ test('accepts placeholder with source: null', () => {
   m.docs.push({ slug: 'api', source: null, title: 'API', description: 'x', category: 'prd', updated: '2026-04-19', order: 2, status: 'placeholder' });
   assert.doesNotThrow(() => validateManifest(m, { docsRoot: 'docs', sourceExists: () => true }));
 });
+
+test('rejects null manifest', () => {
+  assert.throws(() => validateManifest(null, { docsRoot: 'docs', sourceExists: () => true }), /non-null object/);
+});
+
+test('rejects non-object manifest', () => {
+  assert.throws(() => validateManifest('not-a-manifest', { docsRoot: 'docs', sourceExists: () => true }), /non-null object/);
+});
