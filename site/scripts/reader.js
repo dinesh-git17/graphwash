@@ -89,7 +89,7 @@ function renderHeader(entry, url) {
     ${entry.notice === 'internal-validation'
       ? `<div class="doc-notice">This is an internal validation report — not user-facing documentation.</div>`
       : ''}
-    <div id="doc-body"></div>
+    <div id="doc-body" class="prose"></div>
   `;
 }
 
@@ -140,9 +140,21 @@ function wireProgress() {
   handler();
 }
 
+export function decodeHashTarget(hash) {
+  if (!hash) return null;
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (raw.length === 0) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 function scrollToHashIfPresent() {
-  if (!location.hash) return;
-  const target = document.querySelector(location.hash);
+  const targetId = decodeHashTarget(location.hash);
+  if (!targetId) return;
+  const target = document.getElementById(targetId);
   if (target) target.scrollIntoView();
 }
 

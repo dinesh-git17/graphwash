@@ -9,10 +9,7 @@ export async function showCategory(manifest, categoryId) {
     honesty.textContent = 'Synthetic data only · IBM IT-AML NeurIPS 2023 · not a production AML system.';
   }
 
-  if (!category) {
-    document.body.className = 'view-notfound';
-    return;
-  }
+  if (!category) return false;
 
   renderNav(document.getElementById('cat-topnav'), manifest, url, categoryId);
 
@@ -42,6 +39,8 @@ export async function showCategory(manifest, categoryId) {
       })
       .catch(() => { /* swallow per-doc failures; card stays with placeholder dots */ });
   }
+
+  return true;
 }
 
 function renderCard(d, url) {

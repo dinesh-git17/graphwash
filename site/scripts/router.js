@@ -12,9 +12,22 @@ function switchBodyView(view) {
   }
 }
 
+export function resolveRoute(route, manifest) {
+  if (
+    route.view === 'category'
+    && !manifest.categories.some((category) => category.id === route.categoryId)
+  ) {
+    return { view: 'notfound' };
+  }
+  return route;
+}
+
 async function dispatch() {
   const manifest = await loadManifest();
-  const route = classifyRoute(location.pathname, { basePath: manifest.site.basePath });
+  const route = resolveRoute(
+    classifyRoute(location.pathname, { basePath: manifest.site.basePath }),
+    manifest,
+  );
   switchBodyView(route.view);
   if (route.view === 'landing') await showLanding(manifest);
   else if (route.view === 'reader') await showReader(manifest, route.slug);
@@ -27,9 +40,11 @@ async function showNotFound(manifest) {
   if (link) link.setAttribute('href', manifest.site.basePath);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  dispatch().catch((err) => {
-    console.error('router dispatch failed', err);
-    switchBodyView('notfound');
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    dispatch().catch((err) => {
+      console.error('router dispatch failed', err);
+      switchBodyView('notfound');
+    });
   });
-});
+}

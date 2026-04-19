@@ -1,5 +1,3 @@
-import { loadManifest, makeUrl } from './manifest.js';
-
 const ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel):|#|\/)/i;
 
 function htmlEscape(s) {
@@ -20,13 +18,25 @@ function unescapeHtml(s) {
     .replace(/&amp;/g, '&');
 }
 
-function slugify(text) {
+export function slugify(text) {
   return String(text)
     .toLowerCase()
     .replace(/[^\w\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 64);
+}
+
+export function makeUniqueId(baseId, usedIds) {
+  const root = baseId || 'section';
+  let candidate = root;
+  let suffix = 2;
+  while (usedIds.has(candidate)) {
+    candidate = `${root}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(candidate);
+  return candidate;
 }
 
 function rewriteInternalHref(href, sourceDir, sourceMap, url) {
@@ -58,7 +68,7 @@ function rewriteInternalHref(href, sourceDir, sourceMap, url) {
   return url(`docs/${slug}/`) + anchor;
 }
 
-function makeRenderer({ sourceRel, manifest, url }) {
+export function makeRenderer({ sourceRel, manifest, url }) {
   const renderer = new window.marked.Renderer();
   const segs = sourceRel.split('/');
   segs.pop();
@@ -84,6 +94,25 @@ function makeRenderer({ sourceRel, manifest, url }) {
     return `<pre><code${cls}>${htmlEscape(code)}</code></pre>`;
   };
 
+  renderer.list = function(token) {
+    const ordered = token.ordered;
+    const start = token.start;
+    let body = '';
+    for (const item of token.items) {
+      body += this.listitem(item);
+    }
+    const type = ordered ? 'ol' : 'ul';
+    const startAttr = (ordered && start !== 1) ? ` start="${start}"` : '';
+    const classAttr = token.items.some((item) => item.task) ? ' class="task-list"' : '';
+    return `<${type}${startAttr}${classAttr}>\n${body}</${type}>\n`;
+  };
+
+  renderer.listitem = function(item) {
+    const classAttr = item.task && item.checked ? ' class="done"' : '';
+    const body = this.parser.parse(item.tokens, !!item.loose);
+    return `<li${classAttr}>${body}</li>\n`;
+  };
+
   return renderer;
 }
 
@@ -102,8 +131,10 @@ function sanitize(rawHtml) {
 }
 
 function postProcess(frag) {
+  const usedHeadingIds = new Set();
   for (const h of frag.querySelectorAll('h2, h3')) {
-    if (!h.id) h.id = slugify(h.textContent);
+    const baseId = h.id || slugify(h.textContent);
+    h.id = makeUniqueId(baseId, usedHeadingIds);
   }
 
   for (const code of frag.querySelectorAll('pre > code')) {
