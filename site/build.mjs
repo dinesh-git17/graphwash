@@ -102,7 +102,7 @@ export function validateMetrics(metrics) {
     throw new Error('metrics.ticker.items must be an array');
   }
   for (const it of ticker.items) {
-    if (!it || !it.label || !it.value || !FRAMINGS.has(it.framing)) {
+    if (!it || it.label == null || it.value == null || !FRAMINGS.has(it.framing)) {
       throw new Error(`metrics.ticker.items entry invalid or missing framing: ${JSON.stringify(it)}`);
     }
     if (it.delta !== undefined && it.framing !== 'measured') {
@@ -112,7 +112,7 @@ export function validateMetrics(metrics) {
 
   for (const key of ['baseline', 'target', 'deadline']) {
     const h = highlights?.[key];
-    if (!h || !h.label || !h.value) {
+    if (!h || h.label == null || h.value == null) {
       throw new Error(`metrics.highlights.${key} missing label/value`);
     }
   }
@@ -121,7 +121,7 @@ export function validateMetrics(metrics) {
     throw new Error('metrics.modelCard must be an object');
   }
   for (const key of ['architecture', 'dataset', 'trainingStatus']) {
-    if (!modelCard[key]) {
+    if (modelCard[key] == null) {
       throw new Error(`metrics.modelCard.${key} missing`);
     }
   }
