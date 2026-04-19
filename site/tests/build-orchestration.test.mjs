@@ -34,8 +34,9 @@ function makeFixture() {
   return root;
 }
 
-test('main() produces _dist with content, base href, 404 copy, and receipt', () => {
+test('main() produces _dist with content, base href, 404 copy, and receipt', (t) => {
   const root = makeFixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   main({ repoRoot: root });
   const dist = path.join(root, 'site/_dist');
 
@@ -61,22 +62,25 @@ test('main() produces _dist with content, base href, 404 copy, and receipt', () 
 
   // Build receipt
   const receipt = JSON.parse(fs.readFileSync(path.join(dist, '_build.json'), 'utf8'));
-  assert.equal(receipt.docCount, 2, 'receipt counts 2 docs');
+  assert.equal(receipt.shippedCount, 2, 'receipt counts 2 shipped docs');
+  assert.equal(receipt.placeholderCount, 0, 'receipt counts 0 placeholders');
   assert.ok(receipt.manifestHash && receipt.manifestHash.length === 64, 'manifestHash is sha256 hex');
   assert.ok(receipt.metricsHash && receipt.metricsHash.length === 64, 'metricsHash is sha256 hex');
   assert.ok(receipt.builtAt, 'builtAt timestamp set');
 });
 
-test('main() refuses to ship a doc that links into docs/superpowers/', () => {
+test('main() refuses to ship a doc that links into docs/superpowers/', (t) => {
   const root = makeFixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'docs/superpowers'), { recursive: true });
   fs.writeFileSync(path.join(root, 'docs/superpowers/y.md'), '# y\n');
   fs.writeFileSync(path.join(root, 'docs/a.md'), '[x](./superpowers/y.md)\n');
   assert.throws(() => main({ repoRoot: root }), /superpowers/);
 });
 
-test('main() does NOT copy build.mjs into _dist/', () => {
+test('main() does NOT copy build.mjs into _dist/', (t) => {
   const root = makeFixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   // Place a build.mjs in the site root (simulating the real repo shape)
   fs.writeFileSync(path.join(root, 'site/build.mjs'), '// not shipped');
   main({ repoRoot: root });
@@ -85,8 +89,9 @@ test('main() does NOT copy build.mjs into _dist/', () => {
   assert.ok(!fs.existsSync(path.join(dist, 'scripts/build.mjs')), 'build.mjs must not land in _dist/scripts');
 });
 
-test('main() fresh-rebuilds _dist each call', () => {
+test('main() fresh-rebuilds _dist each call', (t) => {
   const root = makeFixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   main({ repoRoot: root });
   const dist = path.join(root, 'site/_dist');
   // Plant a stale file in _dist

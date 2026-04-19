@@ -242,6 +242,15 @@ function sha256(s) {
   return crypto.createHash('sha256').update(s).digest('hex');
 }
 
+function parseJsonFile(absPath, label) {
+  const text = fs.readFileSync(absPath, 'utf8');
+  try {
+    return { text, data: JSON.parse(text) };
+  } catch (err) {
+    throw new Error(`${label}: ${err.message}`);
+  }
+}
+
 function copyDir(src, dst) {
   if (!fs.existsSync(src)) return;
   fs.mkdirSync(dst, { recursive: true });
@@ -260,15 +269,17 @@ export function main(opts = {}) {
   const distDir = path.join(siteDir, '_dist');
   const docsRoot = path.join(repoRoot, 'docs');
 
-  const manifestText = fs.readFileSync(path.join(siteDir, 'manifest.json'), 'utf8');
-  const manifest = JSON.parse(manifestText);
+  const { text: manifestText, data: manifest } = parseJsonFile(
+    path.join(siteDir, 'manifest.json'), 'manifest.json',
+  );
   validateManifest(manifest, {
     docsRoot,
     sourceExists: (rel) => fs.existsSync(path.join(repoRoot, rel)),
   });
 
-  const metricsText = fs.readFileSync(path.join(siteDir, 'metrics.json'), 'utf8');
-  const metrics = JSON.parse(metricsText);
+  const { text: metricsText, data: metrics } = parseJsonFile(
+    path.join(siteDir, 'metrics.json'), 'metrics.json',
+  );
   validateMetrics(metrics);
 
   for (const d of manifest.docs) {
@@ -286,9 +297,12 @@ export function main(opts = {}) {
   fs.mkdirSync(distDir, { recursive: true });
 
   const indexHtmlSrc = path.join(siteDir, 'index.html');
-  let indexHtml = fs.readFileSync(indexHtmlSrc, 'utf8');
+  const rawIndexHtml = fs.readFileSync(indexHtmlSrc, 'utf8');
   const baseTag = `<base href="${manifest.site.basePath}">`;
-  indexHtml = indexHtml.replace(/<head>/i, `<head>\n  ${baseTag}`);
+  const indexHtml = rawIndexHtml.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n  ${baseTag}`);
+  if (indexHtml === rawIndexHtml) {
+    throw new Error(`index.html has no <head> tag — cannot inject <base href>`);
+  }
   fs.writeFileSync(path.join(distDir, 'index.html'), indexHtml);
   fs.writeFileSync(path.join(distDir, '404.html'), indexHtml);
 
@@ -324,7 +338,8 @@ export function main(opts = {}) {
   const receipt = {
     builtAt: new Date().toISOString(),
     gitSha,
-    docCount: shippedCount + placeholderCount,
+    shippedCount,
+    placeholderCount,
     manifestHash: sha256(manifestText),
     metricsHash: sha256(metricsText),
   };
