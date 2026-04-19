@@ -1,0 +1,83 @@
+# graphwash
+# Runtime artefacts, training outputs, and local tooling noise.
+# Source, configs, lockfiles, docs, and test fixtures are tracked.
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Packaging
+build/
+dist/
+*.egg
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing & coverage
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Type checking & linting
+.mypy_cache/
+.dmypy.json
+.pyright/
+.ruff_cache/
+
+# Model weights & checkpoints
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+checkpoints/
+
+# Experiment tracking
+wandb/
+mlruns/
+
+# Datasets (test fixtures are tracked)
+/data/
+!/tests/fixtures/**
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.swp
+*.swo
+
+# Browser automation
+.playwright-mcp/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# docs site build output
+site/_dist/

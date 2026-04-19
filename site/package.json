@@ -1,0 +1,14 @@
+{
+  "name": "graphwash-docs-site",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "graphwash docs site — static, GitHub Pages, no runtime server.",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
