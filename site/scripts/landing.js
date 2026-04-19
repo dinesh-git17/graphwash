@@ -59,7 +59,7 @@ function renderHeroLeft(el, manifest, url) {
       <span class="eyebrow-sep">/</span>
       <span>${esc(manifest.site.version)} · ibm it-aml medium</span>
     </div>
-    <h1>Reading the topology<br>of <span class="em">laundered money</span><br>
+    <h1>Reading the topology of<br><span class="em">laundered money</span><br>
       <span class="soft">one edge at a time.</span></h1>
     <p class="lede">${esc(manifest.site.tagline)}. Synthetic data only; not a production AML system.</p>
     <div class="cta-row">
