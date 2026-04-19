@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>graphwash — docs</title>
+  <meta name="description" content="HGT for wire-transfer AML on IBM IT-AML Medium. Synthetic data only; not a production system." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/base16/black-metal-nile.min.css" />
+
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <link rel="stylesheet" href="styles/landing.css" />
+  <link rel="stylesheet" href="styles/reader.css" />
+  <link rel="stylesheet" href="styles/category.css" />
+
+  <style>
+    .view[hidden] { display: none; }
+  </style>
+</head>
+<body class="view-landing">
+  <div class="grain" aria-hidden="true"></div>
+
+  <section id="view-landing" class="view">
+    <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker-track"></div></div>
+    <nav class="topnav" id="topnav"></nav>
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-left" id="hero-left"></div>
+      <div class="hero-right" id="hero-right"></div>
+      <div class="hero-footer" id="hero-footer"></div>
+    </section>
+    <div class="honesty-footer" id="honesty-footer"></div>
+  </section>
+
+  <section id="view-reader" class="view" hidden>
+    <nav class="topnav" id="reader-topnav"></nav>
+    <div class="page">
+      <aside class="sidebar">
+        <div class="sidebar-scroll" id="sidebar-scroll"></div>
+        <div class="progress-pane" id="progress-pane">
+          <div class="progress-row">
+            <span class="progress-lab">Read</span>
+            <span class="progress-val" id="progress-val">0%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="--pct: 0%"></div></div>
+        </div>
+      </aside>
+      <main class="doc">
+        <div class="doc-inner" id="doc-inner"></div>
+      </main>
+    </div>
+    <div class="honesty-footer" id="reader-honesty-footer"></div>
+  </section>
+
+  <section id="view-category" class="view" hidden>
+    <nav class="topnav" id="cat-topnav"></nav>
+    <main class="category-main">
+      <div class="doc-inner">
+        <div class="doc-crumb" id="cat-crumb"></div>
+        <h1 class="doc-title" id="cat-title"></h1>
+        <p class="doc-tagline" id="cat-tagline"></p>
+        <div class="category-grid" id="category-grid"></div>
+      </div>
+    </main>
+    <div class="honesty-footer" id="cat-honesty-footer"></div>
+  </section>
+
+  <section id="view-notfound" class="view" hidden>
+    <nav class="topnav" id="nf-topnav"></nav>
+    <main class="category-main">
+      <div class="doc-inner">
+        <h1 class="doc-title">Not found</h1>
+        <p class="doc-tagline">That document doesn't exist, or hasn't shipped yet.</p>
+        <p><a id="nf-home-link" href="">Back to the docs home</a></p>
+      </div>
+    </main>
+    <div class="honesty-footer" id="nf-honesty-footer"></div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@14.1.3/lib/marked.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+
+  <script type="module" src="scripts/manifest.js"></script>
+  <script type="module" src="scripts/render.js"></script>
+  <script type="module" src="scripts/landing.js"></script>
+  <script type="module" src="scripts/reader.js"></script>
+  <script type="module" src="scripts/category.js"></script>
+  <script type="module" src="scripts/router.js"></script>
+</body>
+</html>
