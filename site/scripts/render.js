@@ -1,0 +1,177 @@
+import { loadManifest, makeUrl } from './manifest.js';
+
+const ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel):|#|\/)/i;
+
+function htmlEscape(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function unescapeHtml(s) {
+  return String(s)
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function slugify(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 64);
+}
+
+function rewriteInternalHref(href, sourceDir, sourceMap, url) {
+  if (!href) return '';
+  if (href.startsWith('#')) return href;
+  if (/^(?:https?:\/\/|mailto:|tel:)/i.test(href)) return href;
+  if (href.startsWith('/')) {
+    throw new Error(
+      `site-relative Markdown link "${href}" reached the renderer; ` +
+      `build-time validation should have rejected it`
+    );
+  }
+  const hashIndex = href.indexOf('#');
+  const pathPart = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const anchor = hashIndex === -1 ? '' : href.slice(hashIndex);
+  const parts = sourceDir.split('/').filter(Boolean);
+  for (const seg of pathPart.split('/')) {
+    if (seg === '' || seg === '.') continue;
+    if (seg === '..') parts.pop();
+    else parts.push(seg);
+  }
+  const resolved = parts.join('/');
+  const slug = sourceMap.get(resolved);
+  if (!slug) {
+    throw new Error(
+      `Markdown link "${href}" in ${sourceDir}/* resolved to "${resolved}" which is not a manifest source`
+    );
+  }
+  return url(`docs/${slug}/`) + anchor;
+}
+
+function makeRenderer({ sourceRel, manifest, url }) {
+  const renderer = new window.marked.Renderer();
+  const segs = sourceRel.split('/');
+  segs.pop();
+  const sourceDir = segs.join('/');
+  const sourceMap = new Map();
+  for (const d of manifest.docs) {
+    if (d.source) sourceMap.set(d.source, d.slug);
+  }
+
+  renderer.link = (href, title, text) => {
+    const resolved = rewriteInternalHref(href, sourceDir, sourceMap, url);
+    const titleAttr = title ? ` title="${htmlEscape(title)}"` : '';
+    return `<a href="${htmlEscape(resolved)}"${titleAttr}>${text}</a>`;
+  };
+
+  renderer.code = (code, info) => {
+    const lang = ((info ?? '').trim().split(/\s+/)[0] ?? '').toLowerCase();
+    if (lang === 'mermaid') {
+      const escaped = htmlEscape(code);
+      return `<pre class="mermaid-pending" data-mermaid="${escaped}">${escaped}</pre>`;
+    }
+    const cls = lang ? ` class="language-${htmlEscape(lang)}"` : '';
+    return `<pre><code${cls}>${htmlEscape(code)}</code></pre>`;
+  };
+
+  return renderer;
+}
+
+function sanitize(rawHtml) {
+  return window.DOMPurify.sanitize(rawHtml, {
+    USE_PROFILES: { html: true },
+    ADD_TAGS: ['kbd', 'sub', 'sup', 'details', 'summary', 'mark', 'abbr'],
+    ADD_ATTR: ['data-mermaid'],
+    ALLOWED_URI_REGEXP,
+    FORBID_TAGS: [
+      'script', 'style', 'iframe', 'object', 'embed',
+      'form', 'input', 'button', 'textarea', 'select', 'link',
+    ],
+    FORBID_ATTR: ['style'],
+  });
+}
+
+function postProcess(frag) {
+  for (const h of frag.querySelectorAll('h2, h3')) {
+    if (!h.id) h.id = slugify(h.textContent);
+  }
+
+  for (const code of frag.querySelectorAll('pre > code')) {
+    const classes = code.className || '';
+    if (classes.includes('language-mermaid')) continue;
+    if (window.hljs) {
+      try {
+        window.hljs.highlightElement(code);
+      } catch (err) {
+        console.warn('hljs highlight failed', err);
+      }
+    }
+  }
+
+  for (const pre of frag.querySelectorAll('pre.mermaid-pending')) {
+    const src = unescapeHtml(pre.getAttribute('data-mermaid') ?? '');
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = src;
+    pre.replaceWith(div);
+  }
+
+  for (const a of frag.querySelectorAll('a[href]')) {
+    const href = a.getAttribute('href');
+    if (/^https?:\/\//i.test(href) && !href.startsWith(location.origin)) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener');
+    }
+  }
+}
+
+let mermaidInitialized = false;
+function initMermaidOnce() {
+  if (mermaidInitialized || !window.mermaid) return;
+  window.mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#12141a',
+      primaryTextColor: '#eef0f4',
+      lineColor: 'rgba(255,255,255,0.16)',
+      mainBkg: '#12141a',
+      nodeBorder: '#3b82f6',
+    },
+  });
+  mermaidInitialized = true;
+}
+
+export async function renderMarkdownToFragment(md, { sourceRel, manifest, url }) {
+  const renderer = makeRenderer({ sourceRel, manifest, url });
+  const rawHtml = window.marked.parse(md, { renderer, gfm: true });
+  const safeHtml = sanitize(rawHtml);
+  const tpl = document.createElement('template');
+  tpl.innerHTML = safeHtml;
+  postProcess(tpl.content);
+  return tpl.content;
+}
+
+export async function renderDocInto(el, { md, sourceRel, manifest, url }) {
+  el.innerHTML = '';
+  const frag = await renderMarkdownToFragment(md, { sourceRel, manifest, url });
+  el.appendChild(frag);
+  if (window.mermaid && el.querySelector('.mermaid')) {
+    initMermaidOnce();
+    try {
+      await window.mermaid.run({ nodes: el.querySelectorAll('.mermaid') });
+    } catch (err) {
+      console.warn('mermaid render failed', err);
+    }
+  }
+}
