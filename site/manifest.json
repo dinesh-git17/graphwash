@@ -1,0 +1,29 @@
+{
+  "site": {
+    "name": "graphwash",
+    "tagline": "HGT for wire-transfer AML on IBM IT-AML Medium",
+    "version": "v1.0 · hgt-v1",
+    "repo": "https://github.com/dineshdawonauth/graphwash",
+    "basePath": "/graphwash/",
+    "liveDemoUrl": null
+  },
+  "categories": [
+    { "id": "prd",   "label": "PRD",        "index": "01", "description": "Product requirements and scope." },
+    { "id": "adr",   "label": "Decisions",  "index": "02", "description": "Architecture decision records." },
+    { "id": "guide", "label": "Guides",     "index": "03", "description": "Developer and operational guides." },
+    { "id": "api",   "label": "API",        "index": "04", "description": "HTTP reference for the inference API." }
+  ],
+  "docs": [
+    { "slug": "prd",          "source": "docs/graphwash-prd.md",          "title": "Product Requirements", "description": "Goals, non-goals, locked decisions, and v1 scope.", "category": "prd",   "updated": "2026-04-19", "order": 1 },
+    { "slug": "task-list",    "source": "docs/graphwash-task-list.md",    "title": "Execution Plan",        "description": "T-NNN task DAG with REQ↔task matrix.",                "category": "prd",   "updated": "2026-04-19", "order": 2 },
+    { "slug": "setup-report", "source": "docs/graphwash-setup-report.md", "title": "Setup Report",          "description": "Phase-0 environment validation snapshot.",             "category": "guide", "updated": "2026-04-19", "order": 3, "notice": "internal-validation" },
+    { "slug": "dev-guide",    "source": "docs/dev-guide.md",              "title": "Developer Guide",       "description": "Local setup, conventions, and how to run.",            "category": "guide", "updated": "2026-04-19", "order": 1 },
+    { "slug": "diagrams",     "source": "docs/graphwash-diagrams.md",     "title": "System Diagrams",       "description": "System, deployment, and UC1 Mermaid diagrams.",        "category": "guide", "updated": "2026-04-19", "order": 2 },
+    { "slug": "adr/0001-hgt-over-gat",               "source": "docs/adr/0001-hgt-over-gat.md",               "title": "ADR-0001 · HGT over GAT",            "description": "Why native heterogeneous attention beat a homogeneous baseline.", "category": "adr", "updated": "2026-04-19", "order": 1 },
+    { "slug": "adr/0002-native-attention-explainer", "source": "docs/adr/0002-native-attention-explainer.md", "title": "ADR-0002 · Native attention explainer","description": "Why HGT attention replaces GNNExplainer for v1.",             "category": "adr", "updated": "2026-04-19", "order": 2 },
+    { "slug": "adr/0003-it-aml-medium-dataset",      "source": "docs/adr/0003-it-aml-medium-dataset.md",      "title": "ADR-0003 · IT-AML Medium",           "description": "Dataset size choice and portfolio tradeoffs.",                 "category": "adr", "updated": "2026-04-19", "order": 3 },
+    { "slug": "adr/0004-vanilla-d3-over-react",      "source": "docs/adr/0004-vanilla-d3-over-react.md",      "title": "ADR-0004 · Vanilla + D3 over React", "description": "Frontend stack lock for the v1 app.",                          "category": "adr", "updated": "2026-04-19", "order": 4 },
+    { "slug": "adr/0005-monolith-delivery-model",    "source": "docs/adr/0005-monolith-delivery-model.md",    "title": "ADR-0005 · Monolith delivery",       "description": "Single FastAPI + Uvicorn process on Hetzner.",                 "category": "adr", "updated": "2026-04-19", "order": 5 },
+    { "slug": "api", "source": null, "title": "API Reference", "description": "Coming with Phase 3. Pydantic v2 schemas, error envelope, inline examples.", "category": "api", "updated": "2026-04-19", "order": 1, "status": "placeholder" }
+  ]
+}
