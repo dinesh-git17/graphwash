@@ -1,3 +1,6 @@
+import { marked } from './vendor/marked.esm.js';
+import * as path from 'node:path';
+
 const BASE_PATH_RE = /^\/(?:[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*\/)?$/;
 const SLUG_SEGMENT_RE = /^[a-z0-9][a-z0-9-]*$/;
 const RESERVED_SLUGS = new Set([
@@ -135,12 +138,9 @@ export function validateMetrics(metrics) {
   return { ok: true };
 }
 
-import { marked } from './vendor/marked.esm.js';
-import * as path from 'node:path';
-
 const FORBIDDEN_TAGS_RE = /<(script|iframe|object|embed|style)\b/i;
 const ON_HANDLER_RE = /\s+on[a-z]+\s*=/i;
-const HREF_SRC_RE = /\s(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+const HREF_SRC_RE = /\s(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
 const SAFE_SCHEME_OR_FRAGMENT_RE = /^(?:https?:\/\/|mailto:|tel:|#)/i;
 
 function classifyRawHtmlAttr(value) {
@@ -215,7 +215,7 @@ export function validateMarkdown(sourceRel, md, opts) {
     HREF_SRC_RE.lastIndex = 0;
     let attrMatch;
     while ((attrMatch = HREF_SRC_RE.exec(html)) !== null) {
-      const value = attrMatch[1] ?? attrMatch[2] ?? '';
+      const value = attrMatch[1] ?? attrMatch[2] ?? attrMatch[3] ?? '';
       const kind = classifyRawHtmlAttr(value);
       if (kind !== 'ok') {
         throw new Error(`${sourceRel}: raw HTML href/src="${value}" is ${kind}; allowed: https://, http://, mailto:, tel:, #fragment`);

@@ -104,7 +104,7 @@ test('rejects raw href with javascript: scheme', () => {
 
 test('rejects raw href site-relative', () => {
   const md = '<a href="/docs/prd/">x</a>';
-  assert.throws(() => validateMarkdown('docs/graphwash-prd.md', md, opts()), /href/i);
+  assert.throws(() => validateMarkdown('docs/graphwash-prd.md', md, opts()), /site-relative/i);
 });
 
 test('rejects raw href relative .md', () => {
@@ -125,4 +125,15 @@ test('accepts <kbd> semantic tag', () => {
 test('accepts <details> and <summary>', () => {
   const md = '<details><summary>x</summary>y</details>';
   assert.doesNotThrow(() => validateMarkdown('docs/graphwash-prd.md', md, opts()));
+});
+
+test('rejects relative link that escapes docs/', () => {
+  const md = '[escape](../CLAUDE.md)';
+  const o = opts({ pathExists: () => true });
+  assert.throws(() => validateMarkdown('docs/graphwash-prd.md', md, o), /outside docs/i);
+});
+
+test('rejects raw href with unquoted javascript: scheme', () => {
+  const md = '<a href=javascript:alert(1)>x</a>';
+  assert.throws(() => validateMarkdown('docs/graphwash-prd.md', md, opts()), /unsafe-scheme|javascript/i);
 });
