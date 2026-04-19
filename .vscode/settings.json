@@ -1,0 +1,59 @@
+{
+  "editor.formatOnSave": true,
+  "editor.rulers": [88, 100],
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/.venv": true,
+    "**/__pycache__": true,
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/.venv": true,
+    "**/__pycache__": true,
+    "**/node_modules": true
+  },
+  "workbench.browser.dataStorage": "workspace",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.useEnvsExtension": true,
+  "python.terminal.useEnvFile": true,
+  "python-envs.alwaysUseUv": true,
+  "python-envs.workspaceSearchPaths": ["./.venv", "./**/.venv"],
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.enableEditableInstalls": true,
+  "python.analysis.inlayHints.pytestParameters": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["-q"],
+  "python.testing.unittestEnabled": false,
+  "js/ts.format.enabled": false,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  "[javascript][javascriptreact][typescript][typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html][css][json][jsonc][yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 100,
+    "files.trimTrailingWhitespace": false
+  }
+}

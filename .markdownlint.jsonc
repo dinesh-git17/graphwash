@@ -1,0 +1,34 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+  "default": true,
+
+  // LLM-generated markdown often includes long prose paragraphs.
+  "MD013": false,
+
+  // Allow generated fragments instead of requiring a complete standalone document.
+  "MD041": false,
+
+  // Relax heading rules that are commonly violated by generated content.
+  "MD024": {
+    "siblings_only": true
+  },
+  "MD025": false,
+  "MD026": false,
+  "MD036": false,
+
+  // Relax blank-line requirements around common generated structures.
+  "MD022": false,
+  "MD031": false,
+  "MD032": false,
+
+  // Allow common LLM output patterns.
+  "MD029": {
+    "style": "ordered"
+  },
+  "MD033": false,
+  "MD034": false,
+  "MD040": false,
+  "MD046": false,
+  "MD049": false,
+  "MD050": false
+}

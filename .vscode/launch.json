@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Graphwash: FastAPI (uvicorn)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "args": [
+        "${input:fastApiApp}",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "serverReadyAction": {
+        "pattern": "Uvicorn running on (https?://\\S+)",
+        "action": "startDebugging",
+        "name": "Graphwash: Frontend (Chrome)"
+      }
+    },
+    {
+      "name": "Graphwash: Frontend (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:8000",
+      "webRoot": "${workspaceFolder}"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "fastApiApp",
+      "type": "promptString",
+      "description": "ASGI app import string passed to uvicorn",
+      "default": "graphwash.api.main:app"
+    }
+  ]
+}

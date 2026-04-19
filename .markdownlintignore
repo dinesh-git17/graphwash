@@ -1,0 +1,10 @@
+# Generated and third-party content
+node_modules/
+.venv/
+venv/
+dist/
+build/
+coverage/
+_site/
+.next/
+.cache/

@@ -1,0 +1,19 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+    "esbenp.prettier-vscode",
+    "davidanson.vscode-markdownlint",
+    "yzhang.markdown-all-in-one",
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml",
+    "ms-azuretools.vscode-docker"
+  ],
+  "unwantedRecommendations": [
+    "ms-python.autopep8",
+    "ms-python.black-formatter",
+    "ms-python.isort"
+  ]
+}
