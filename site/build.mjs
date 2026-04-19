@@ -134,3 +134,103 @@ export function validateMetrics(metrics) {
 
   return { ok: true };
 }
+
+import { marked } from './vendor/marked.esm.js';
+import * as path from 'node:path';
+
+const FORBIDDEN_TAGS_RE = /<(script|iframe|object|embed|style)\b/i;
+const ON_HANDLER_RE = /\s+on[a-z]+\s*=/i;
+const HREF_SRC_RE = /\s(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+const SAFE_SCHEME_OR_FRAGMENT_RE = /^(?:https?:\/\/|mailto:|tel:|#)/i;
+
+function classifyRawHtmlAttr(value) {
+  if (value === '' || value == null) return 'ok';
+  if (/^[a-z]+:/i.test(value) && !SAFE_SCHEME_OR_FRAGMENT_RE.test(value)) return 'unsafe-scheme';
+  if (value.startsWith('/')) return 'site-relative';
+  if (value.startsWith('#')) return 'ok';
+  if (/^(?:https?:\/\/|mailto:|tel:)/i.test(value)) return 'ok';
+  return 'relative';
+}
+
+export function validateMarkdown(sourceRel, md, opts) {
+  const { manifest, docsRoot, pathExists } = opts;
+  const relFromDocs = path.relative('docs', sourceRel);
+  const sourceAbsDir = path.dirname(path.join(docsRoot, relFromDocs));
+  const shippedSources = new Set(
+    (manifest.docs ?? []).filter(d => d.source).map(d => d.source),
+  );
+
+  const tokens = marked.lexer(md);
+
+  function walkLinks(list) {
+    for (const tok of list) {
+      if (tok.type === 'link') {
+        validateLink(tok.href, sourceAbsDir, sourceRel);
+      }
+      if (Array.isArray(tok.tokens)) walkLinks(tok.tokens);
+      if (Array.isArray(tok.items)) {
+        for (const it of tok.items) {
+          if (Array.isArray(it.tokens)) walkLinks(it.tokens);
+        }
+      }
+    }
+  }
+
+  function validateLink(href, fromDirAbs, fromRel) {
+    if (!href) return;
+    if (href.startsWith('#')) return;
+    if (/^(?:https?:\/\/|mailto:|tel:)/i.test(href)) return;
+    if (href.startsWith('/')) {
+      throw new Error(`${fromRel}: site-relative Markdown link "${href}" is forbidden; use a relative .md path`);
+    }
+    const [pathPart] = href.split('#');
+    const resolvedAbs = path.resolve(fromDirAbs, pathPart);
+    if (resolvedAbs !== docsRoot && !resolvedAbs.startsWith(docsRoot + path.sep)) {
+      throw new Error(`${fromRel}: link "${href}" resolves outside docs/`);
+    }
+    const resolvedRel = 'docs/' + path.relative(docsRoot, resolvedAbs).split(path.sep).join('/');
+    if (resolvedRel.startsWith('docs/superpowers/')) {
+      throw new Error(`${fromRel}: link "${href}" points into docs/superpowers/ (stealth leak)`);
+    }
+    if (!pathExists(resolvedAbs)) {
+      throw new Error(`${fromRel}: link "${href}" target does not exist (${resolvedRel})`);
+    }
+    if (resolvedRel.endsWith('.md') && !shippedSources.has(resolvedRel)) {
+      throw new Error(`${fromRel}: link "${href}" points to .md not in manifest: ${resolvedRel}`);
+    }
+  }
+
+  walkLinks(tokens);
+
+  function scanRawHtml(html) {
+    const m = FORBIDDEN_TAGS_RE.exec(html);
+    if (m) {
+      throw new Error(`${sourceRel}: raw HTML contains forbidden tag <${m[1]}>`);
+    }
+    if (ON_HANDLER_RE.test(html)) {
+      const handlerMatch = html.match(/\s+(on[a-z]+)\s*=/i);
+      const handler = handlerMatch ? handlerMatch[1] : 'on*';
+      throw new Error(`${sourceRel}: raw HTML contains ${handler} handler attribute`);
+    }
+    HREF_SRC_RE.lastIndex = 0;
+    let attrMatch;
+    while ((attrMatch = HREF_SRC_RE.exec(html)) !== null) {
+      const value = attrMatch[1] ?? attrMatch[2] ?? '';
+      const kind = classifyRawHtmlAttr(value);
+      if (kind !== 'ok') {
+        throw new Error(`${sourceRel}: raw HTML href/src="${value}" is ${kind}; allowed: https://, http://, mailto:, tel:, #fragment`);
+      }
+    }
+  }
+
+  for (const tok of tokens) {
+    if (tok.type === 'html') scanRawHtml(tok.raw ?? tok.text ?? '');
+    if (Array.isArray(tok.tokens)) {
+      for (const inner of tok.tokens) {
+        if (inner.type === 'html') scanRawHtml(inner.raw ?? inner.text ?? '');
+      }
+    }
+  }
+
+  return { ok: true };
+}
