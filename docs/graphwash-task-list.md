@@ -648,12 +648,13 @@ Estimate: 0.5d
 Status: pending
 
 What:
-Local pre-commit hooks: ruff format, ruff check, mypy, conventional-commits message lint.
+Local pre-commit hooks: ruff format, ruff check, conventional-commits message lint, `t-NNN` or `training` scope enforcement, hygiene baseline (trailing-whitespace, EOF, YAML / TOML validation, merge-conflict, large-files, case-conflict).
 
 Approach / Files:
 
-- .pre-commit-config.yaml :: ruff (format + check), mypy, commitlint or conventional-pre-commit
-- docs/dev-guide.md :: `pre-commit install` instructions
+- .pre-commit-config.yaml :: `pre-commit/pre-commit-hooks` hygiene baseline, `astral-sh/ruff-pre-commit` (format + check), `compilerla/conventional-pre-commit` at `commit-msg` stage, `repo: local` scope-enforcement hook at `commit-msg` stage
+- scripts/check-commit-scope.sh :: bash script invoked by the scope-enforcement hook; regex-validates commit subject against `type(t-NNN|training): description`
+- docs/dev-guide.md :: `pre-commit install` instructions and hook inventory
 
 Acceptance:
 [ ] `pre-commit install` succeeds
@@ -671,14 +672,16 @@ Estimate: 0.25d
 Status: pending
 
 What:
-Pre-push hook runs `pytest -q` on changed modules to catch test breakage before push.
+Pre-push hook runs `mypy --strict` project-wide and `pytest -q` on changed modules to catch type regressions and test breakage before push.
 
 Approach / Files:
 
+- .pre-commit-config.yaml :: pre-push stage hook invoking `uv run mypy src` project-wide
 - .pre-commit-config.yaml :: pre-push stage hook invoking pytest
 - docs/dev-guide.md :: `pre-commit install --hook-type pre-push` instructions
 
 Acceptance:
+[ ] Pre-push hook runs `mypy --strict` on `src/`
 [ ] Pre-push hook runs pytest on `git push`
 [ ] Failing test blocks push (manual test)
 [ ] Conventional commit landed on a PR into main
