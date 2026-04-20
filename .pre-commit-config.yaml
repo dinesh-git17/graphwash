@@ -46,3 +46,21 @@ repos:
         language: system
         entry: bash scripts/check-commit-scope.sh
         stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: mypy-strict
+        name: mypy --strict (project-wide, src/)
+        language: system
+        entry: uv run mypy --strict src
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+
+      - id: pytest-full
+        name: pytest (full suite, no coverage)
+        language: system
+        entry: uv run pytest -q --no-cov
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
