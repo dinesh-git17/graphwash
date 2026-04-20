@@ -43,3 +43,67 @@ test('makeRenderer preserves task-list semantics without emitting checkbox input
   assert.match(html, /<li class="done">done<\/li>/);
   assert.doesNotMatch(html, /<input\b/);
 });
+
+test('makeRenderer rewrites internal markdown links to doc slugs without throwing', (t) => {
+  global.window = { marked };
+  t.after(() => {
+    delete global.window;
+  });
+
+  const renderer = makeRenderer({
+    sourceRel: 'docs/graphwash-prd.md',
+    manifest: {
+      docs: [
+        { slug: 'task-list', source: 'docs/graphwash-task-list.md' },
+      ],
+    },
+    url: (tail) => `/graphwash/${tail}`,
+  });
+
+  const html = marked.parse('See [the plan](graphwash-task-list.md) for detail.', {
+    renderer,
+    gfm: true,
+  });
+  assert.match(html, /<a href="\/graphwash\/docs\/task-list\/">the plan<\/a>/);
+});
+
+test('makeRenderer preserves external, hash, and mailto links verbatim', (t) => {
+  global.window = { marked };
+  t.after(() => {
+    delete global.window;
+  });
+
+  const renderer = makeRenderer({
+    sourceRel: 'docs/graphwash-prd.md',
+    manifest: { docs: [] },
+    url: (tail) => `/graphwash/${tail}`,
+  });
+
+  for (const [md, expected] of [
+    ['[docs](https://example.com)',        'href="https://example.com"'],
+    ['[top](#overview)',                   'href="#overview"'],
+    ['[mail](mailto:x@y.z)',               'href="mailto:x@y.z"'],
+  ]) {
+    const html = marked.parse(md, { renderer, gfm: true });
+    assert.ok(html.includes(expected), `${md} → ${html}`);
+  }
+});
+
+test('makeRenderer emits language-tagged pre/code blocks and preserves mermaid', (t) => {
+  global.window = { marked };
+  t.after(() => {
+    delete global.window;
+  });
+
+  const renderer = makeRenderer({
+    sourceRel: 'docs/graphwash-prd.md',
+    manifest: { docs: [] },
+    url: (tail) => `/graphwash/${tail}`,
+  });
+
+  const tsHtml = marked.parse('```ts\nconst x = 1;\n```', { renderer, gfm: true });
+  assert.match(tsHtml, /<pre><code class="language-ts">const x = 1;<\/code><\/pre>/);
+
+  const mmHtml = marked.parse('```mermaid\nflowchart TD\n  A --> B\n```', { renderer, gfm: true });
+  assert.match(mmHtml, /<pre class="mermaid-pending" data-mermaid="flowchart TD\n {2}A --&gt; B">/);
+});
