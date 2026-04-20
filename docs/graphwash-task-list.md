@@ -1,7 +1,7 @@
 # graphwash — Task List
 
 **Version:** v0.1 (Draft)
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-20
 **Status:** Ready for author review
 **Author:** Dinesh
 **Design spec:** `docs/superpowers/specs/2026-04-18-graphwash-task-list-design.md`
@@ -514,7 +514,7 @@ Acceptance:
 [x] Description set (1-line project pitch)
 [x] Topics ≥ 3 including graph-ml, aml, pytorch-geometric
 [x] Social preview image uploaded
-[ ] Conventional commit landed on a PR into main
+[x] Conventional commit landed on a PR into main
 
 ### T-002 — Branch protection on `main` [kind:infra]
 
@@ -539,7 +539,7 @@ Acceptance:
 [x] Rule "require linear history" enabled
 [x] Rule "do not allow force pushes" enabled
 [x] Admin bypass disabled
-[ ] Conventional commit landed on a PR into main
+[x] Conventional commit landed on a PR into main
 
 ### T-003 — Add CODEOWNERS, SECURITY.md, LICENSE (MIT) [kind:docs]
 
@@ -563,7 +563,7 @@ Acceptance:
 [x] `.github/CODEOWNERS` committed
 [x] `SECURITY.md` committed
 [x] `LICENSE` committed (MIT text verbatim)
-[ ] ruff + mypy --strict clean; pytest green
+[x] ruff + mypy --strict clean; pytest green
 [x] Conventional commit landed on a PR into main
 
 ### T-004 — README skeleton [kind:docs]
@@ -596,7 +596,7 @@ Links: —
 BlockedBy: T-001
 Blocks: T-006
 Estimate: 0.25d
-Status: in_progress
+Status: done
 
 What:
 Editor/whitespace consistency and Python-aware ignore/attribute rules.
@@ -610,8 +610,8 @@ Approach / Files:
 Acceptance:
 [x] `.editorconfig` committed
 [x] `.gitignore` committed (covers wandb, .pt weights, caches)
-[ ] `.gitattributes` committed
-[ ] Conventional commit landed on a PR into main
+[x] `.gitattributes` committed
+[x] Conventional commit landed on a PR into main
 
 ### T-006 — `pyproject.toml` Ruff + mypy `--strict` config + uv lockfile policy [kind:infra]
 
@@ -620,7 +620,7 @@ Links: —
 BlockedBy: T-005
 Blocks: T-007, T-009
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
 Single pyproject.toml owning dependency management (uv), Ruff full ruleset, mypy strict, Python 3.12 pin. uv lockfile committed.
@@ -632,11 +632,11 @@ Approach / Files:
 - docs/dev-guide.md :: updated with uv lockfile policy note
 
 Acceptance:
-[ ] `pyproject.toml` Ruff config passes on empty package
-[ ] `mypy --strict` returns clean on empty package
-[ ] `uv.lock` committed; `uv sync` reproduces env on fresh machine
-[ ] `docs/dev-guide.md` updated
-[ ] Conventional commit landed on a PR into main
+[x] `pyproject.toml` Ruff config passes on empty package
+[x] `mypy --strict` returns clean on empty package
+[x] `uv.lock` committed; `uv sync` reproduces env on fresh machine
+[x] `docs/dev-guide.md` updated
+[x] Conventional commit landed on a PR into main
 
 ### T-007 — pre-commit hooks [kind:infra]
 
@@ -645,7 +645,7 @@ Links: —
 BlockedBy: T-002, T-006
 Blocks: T-008
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
 Local pre-commit hooks: ruff format, ruff check, conventional-commits message lint, `t-NNN` or `training` scope enforcement, hygiene baseline (trailing-whitespace, EOF, YAML / TOML validation, merge-conflict, large-files, case-conflict).
@@ -657,10 +657,10 @@ Approach / Files:
 - docs/dev-guide.md :: `pre-commit install` instructions and hook inventory
 
 Acceptance:
-[ ] `pre-commit install` succeeds
-[ ] Format violation blocks commit (manual test)
-[ ] Conventional-commit violation blocks commit (manual test)
-[ ] Conventional commit landed on a PR into main
+[x] `pre-commit install` succeeds
+[x] Format violation blocks commit (manual test)
+[x] Conventional-commit violation blocks commit (manual test)
+[x] Conventional commit landed on a PR into main
 
 ### T-008 — pre-push hooks [kind:infra]
 
@@ -669,7 +669,7 @@ Links: —
 BlockedBy: T-007
 Blocks: T-009
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Pre-push hooks run `mypy --strict` project-wide on `src/` and the full `pytest` suite (without coverage reporting) to catch type regressions and test breakage before push. Ships a minimal `tests/test_smoke.py` so the pytest gate has something to run against.
@@ -682,11 +682,11 @@ Approach / Files:
 - docs/dev-guide.md :: `pre-commit install --hook-type pre-push` instructions, pre-push hook inventory, coverage-on-CI rationale
 
 Acceptance:
-[ ] Pre-push hook runs `mypy --strict` on `src/`
-[ ] Pre-push hook runs `pytest` on `git push`
-[ ] Failing test blocks push (manual test)
-[ ] `tests/test_smoke.py` collected and green on `uv run pytest -q`
-[ ] Conventional commit landed on a PR into main
+[x] Pre-push hook runs `mypy --strict` on `src/`
+[x] Pre-push hook runs `pytest` on `git push`
+[x] Failing test blocks push (manual test)
+[x] `tests/test_smoke.py` collected and green on `uv run pytest -q`
+[x] Conventional commit landed on a PR into main
 
 ### T-009 — GitHub Actions CI workflow [kind:infra]
 
