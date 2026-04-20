@@ -13,6 +13,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 
 COPY src/ ./src/
+COPY README.md ./
 RUN uv sync --frozen --no-editable --no-dev
 
 CMD ["echo", "v0 stub"]

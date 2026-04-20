@@ -14,5 +14,6 @@ tests/
 docs/
 scripts/
 *.md
+!README.md
 AGENTS.md
 CLAUDE.md
