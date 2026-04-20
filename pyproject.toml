@@ -10,7 +10,7 @@ license = { text = "MIT" }
 authors = [{ name = "Dinesh Dawonauth" }]
 
 dependencies = [
-    "torch==2.8.0",
+    "torch==2.11.0",
     "torchvision>=0.23.0",
     "torchaudio>=2.11.0",
     "torch-geometric>=2.7,<2.8",
