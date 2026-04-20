@@ -172,6 +172,89 @@ Top-level repo shape is **locked** per PRD §9a. Do not add new top-level direct
 - Follows workspace governance (`dev/CLAUDE.md` — conventional commits, never commit without permission, never push to `main`).
 - Training-run commits use `chore(training): run <wandb-run-id>` so W&B run IDs are searchable from `git log`.
 
+### Pre-commit hooks
+
+#### Setup
+
+```bash
+uv sync --extra dev
+uv run pre-commit install
+```
+
+`uv run pre-commit install` wires both the `pre-commit` and `commit-msg`
+git hooks in one command because `.pre-commit-config.yaml` sets
+`default_install_hook_types: [pre-commit, commit-msg]`.
+
+The pre-push stage is not active yet. When T-008 lands, add it:
+
+```bash
+uv run pre-commit install --hook-type pre-push
+```
+
+#### Hook inventory
+
+**`pre-commit/pre-commit-hooks`** (pre-commit stage)
+
+- `trailing-whitespace`: strips trailing spaces. Markdown hard-break
+  double-spaces are preserved via `--markdown-linebreak-ext=md`.
+- `end-of-file-fixer`: ensures files end with a newline.
+- `check-yaml`: parses YAML files for syntax errors.
+- `check-toml`: parses TOML files for syntax errors.
+- `check-merge-conflict`: rejects files containing conflict markers.
+- `check-added-large-files`: blocks files over 500 KB. `docs/figures/`
+  is excluded to allow screenshots and histogram exports.
+- `check-case-conflict`: catches case-only filename collisions.
+
+**`astral-sh/ruff-pre-commit`** (pre-commit stage)
+
+- `ruff-format`: applies the Ruff formatter.
+- `ruff-check --fix`: applies auto-fixable lint rules.
+
+Both read `[tool.ruff]` from `pyproject.toml`.
+
+**`compilerla/conventional-pre-commit`** (commit-msg stage)
+
+Validates that the commit subject matches `type(scope): description`
+shape.
+
+**`repo: local` `enforce-scope`** (commit-msg stage)
+
+A local shell hook (`scripts/check-commit-scope.sh`) that regex-validates
+the scope field. Valid scopes are a `t-NNN` task ID or the literal
+`training`. The scope is mandatory; the `!` breaking-change marker is
+optional.
+
+#### Commit message format
+
+Full convention in `CLAUDE.md` §8. Summary:
+
+- **Types:** `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `infra`,
+  `ops`, `spike`.
+- **Scope:** `t-NNN` task ID, or `training` for Vast.ai run commits.
+  Scope is not optional.
+- **Subject:** imperative mood, under 72 characters.
+
+Examples:
+
+```text
+infra(t-007): wire pre-commit hooks
+feat(t-024): construct HeteroData from IT-AML edges
+chore(training): run lucid-sweep-42
+```
+
+#### Version bumping
+
+Run `uv run pre-commit autoupdate` on demand or quarterly to pull the
+latest pinned revs. Never land an autoupdate in the same PR as code
+changes: it goes in its own PR so the rev diff is reviewable in
+isolation.
+
+#### Bypass policy
+
+`--no-verify` is prohibited per `CLAUDE.md` §8. If a hook fails, fix the
+hook or the code at root. Hook regressions are tracked as a follow-up
+`t-NNN` task, not worked around.
+
 ### Model versioning
 
 - Trained models are tagged `hgt-v<semver>` (e.g. `hgt-v1.0`). The current production tag is surfaced in `GET /api/v1/health` as `model_version`.
