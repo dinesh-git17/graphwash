@@ -695,20 +695,20 @@ Links: —
 BlockedBy: T-002, T-006
 Blocks: T-010, T-011
 Estimate: 0.5d
-Status: pending
+Status: in_progress
 
 What:
 CI workflow running lint + typecheck + test on pull_request and push to main. Turns the branch-protection status checks from "unknown" to required.
 
 Approach / Files:
 
-- .github/workflows/ci.yml :: jobs = lint (ruff), typecheck (mypy --strict), test (pytest) on python 3.12
+- .github/workflows/ci.yml :: two jobs on python 3.12 / ubuntu-24.04. `lint` runs `ruff format --check` and `ruff check` via `astral-sh/ruff-action@v3`. `test` runs `uv sync --frozen --extra dev` then `mypy --strict src` then `pytest -q --no-cov` via `astral-sh/setup-uv@v8`. Triggers: `pull_request`, `push: [main]`, `workflow_dispatch`. Concurrency cancels in-flight on same ref. `permissions: contents: read`.
 - tests/test_smoke.py already exists from T-008 and provides the CI-green anchor
 
 Acceptance:
 [ ] CI runs on pull_request
 [ ] CI runs on push to main
-[ ] All three jobs pass on an empty-code PR
+[ ] Both `lint` and `test` jobs pass on an empty-code PR
 [ ] Status checks registered in branch protection (T-002 updated)
 [ ] Conventional commit landed on a PR into main
 
