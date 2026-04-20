@@ -78,20 +78,21 @@ export function makeRenderer({ sourceRel, manifest, url }) {
     if (d.source) sourceMap.set(d.source, d.slug);
   }
 
-  renderer.link = (href, title, text) => {
+  renderer.link = function({ href, title, tokens }) {
     const resolved = rewriteInternalHref(href, sourceDir, sourceMap, url);
     const titleAttr = title ? ` title="${htmlEscape(title)}"` : '';
-    return `<a href="${htmlEscape(resolved)}"${titleAttr}>${text}</a>`;
+    const inner = this.parser.parseInline(tokens);
+    return `<a href="${htmlEscape(resolved)}"${titleAttr}>${inner}</a>`;
   };
 
-  renderer.code = (code, info) => {
-    const lang = ((info ?? '').trim().split(/\s+/)[0] ?? '').toLowerCase();
+  renderer.code = ({ text, lang: infoString }) => {
+    const lang = ((infoString ?? '').trim().split(/\s+/)[0] ?? '').toLowerCase();
     if (lang === 'mermaid') {
-      const escaped = htmlEscape(code);
+      const escaped = htmlEscape(text);
       return `<pre class="mermaid-pending" data-mermaid="${escaped}">${escaped}</pre>`;
     }
     const cls = lang ? ` class="language-${htmlEscape(lang)}"` : '';
-    return `<pre><code${cls}>${htmlEscape(code)}</code></pre>`;
+    return `<pre><code${cls}>${htmlEscape(text)}</code></pre>`;
   };
 
   renderer.list = function(token) {
