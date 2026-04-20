@@ -9,15 +9,6 @@ function htmlEscape(s) {
     .replace(/'/g, '&#39;');
 }
 
-function unescapeHtml(s) {
-  return String(s)
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&');
-}
-
 export function slugify(text) {
   return String(text)
     .toLowerCase()
@@ -88,8 +79,7 @@ export function makeRenderer({ sourceRel, manifest, url }) {
   renderer.code = ({ text, lang: infoString }) => {
     const lang = ((infoString ?? '').trim().split(/\s+/)[0] ?? '').toLowerCase();
     if (lang === 'mermaid') {
-      const escaped = htmlEscape(text);
-      return `<pre class="mermaid-pending" data-mermaid="${escaped}">${escaped}</pre>`;
+      return `<pre class="mermaid-pending">${htmlEscape(text)}</pre>`;
     }
     const cls = lang ? ` class="language-${htmlEscape(lang)}"` : '';
     return `<pre><code${cls}>${htmlEscape(text)}</code></pre>`;
@@ -121,7 +111,6 @@ function sanitize(rawHtml) {
   return window.DOMPurify.sanitize(rawHtml, {
     USE_PROFILES: { html: true },
     ADD_TAGS: ['kbd', 'sub', 'sup', 'details', 'summary', 'mark', 'abbr'],
-    ADD_ATTR: ['data-mermaid'],
     ALLOWED_URI_REGEXP,
     FORBID_TAGS: [
       'script', 'style', 'iframe', 'object', 'embed',
@@ -151,10 +140,9 @@ function postProcess(frag) {
   }
 
   for (const pre of frag.querySelectorAll('pre.mermaid-pending')) {
-    const src = unescapeHtml(pre.getAttribute('data-mermaid') ?? '');
     const div = document.createElement('div');
     div.className = 'mermaid';
-    div.textContent = src;
+    div.textContent = pre.textContent ?? '';
     pre.replaceWith(div);
   }
 

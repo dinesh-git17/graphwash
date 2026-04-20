@@ -89,6 +89,25 @@ test('makeRenderer preserves external, hash, and mailto links verbatim', (t) => 
   }
 });
 
+test('mermaid blocks survive DOMPurify sanitize via textContent, not an attribute', (t) => {
+  global.window = { marked };
+  t.after(() => {
+    delete global.window;
+  });
+
+  const renderer = makeRenderer({
+    sourceRel: 'docs/graphwash-task-list.md',
+    manifest: { docs: [] },
+    url: (tail) => `/${tail}`,
+  });
+
+  const src = 'flowchart LR\n    A["Node <br/> break"]:::x --> B';
+  const html = marked.parse('```mermaid\n' + src + '\n```', { renderer, gfm: true });
+  assert.ok(html.includes('<pre class="mermaid-pending">'), html);
+  assert.ok(!html.includes('data-mermaid'), 'attribute form would be stripped by DOMPurify');
+  assert.ok(html.includes('&lt;br/&gt;'), 'HTML entities inside the pre survive escaping');
+});
+
 test('makeRenderer emits language-tagged pre/code blocks and preserves mermaid', (t) => {
   global.window = { marked };
   t.after(() => {
@@ -105,5 +124,6 @@ test('makeRenderer emits language-tagged pre/code blocks and preserves mermaid',
   assert.match(tsHtml, /<pre><code class="language-ts">const x = 1;<\/code><\/pre>/);
 
   const mmHtml = marked.parse('```mermaid\nflowchart TD\n  A --> B\n```', { renderer, gfm: true });
-  assert.match(mmHtml, /<pre class="mermaid-pending" data-mermaid="flowchart TD\n {2}A --&gt; B">/);
+  assert.match(mmHtml, /<pre class="mermaid-pending">flowchart TD\n {2}A --&gt; B<\/pre>/);
+  assert.doesNotMatch(mmHtml, /data-mermaid=/);
 });
