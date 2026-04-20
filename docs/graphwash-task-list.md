@@ -742,7 +742,7 @@ Links: —
 BlockedBy: T-009
 Blocks: T-019
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
 Placeholder Dockerfile + CI workflow that builds the image on every PR (no push). Catches Dockerfile regressions before Phase 5.
@@ -753,10 +753,10 @@ Approach / Files:
 - .github/workflows/docker.yml :: docker build only, no push
 
 Acceptance:
-[ ] `docker build .` succeeds locally
-[ ] CI workflow builds image on pull_request
-[ ] No push step present (confirm by reading workflow)
-[ ] Conventional commit landed on a PR into main
+[x] `docker build .` succeeds locally
+[x] CI workflow builds image on pull_request
+[x] No push step present (confirm by reading workflow)
+[x] Conventional commit landed on a PR into main
 
 ### T-012 — Label set with hex colours + auto-label workflow [kind:infra]
 
