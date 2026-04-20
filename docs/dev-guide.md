@@ -136,6 +136,15 @@ Project-specific additions on top of workspace `dev/CLAUDE.md` and the `python-w
 
 Top-level repo shape is **locked** per PRD §9a. Do not add new top-level directories without updating the PRD.
 
+### Dependency and lockfile policy
+
+- `uv.lock` is source of truth for the environment and is committed.
+- Regenerate only via `uv lock --upgrade-package PKG` for a targeted bump, or `uv add PKG` / `uv remove PKG` when the dep set changes.
+- Never hand-edit `uv.lock`.
+- CI and training hosts run `uv sync --frozen`; drift from the lockfile is a build failure, not a warning.
+- PyTorch and PyG extension indexes are pinned `explicit = true` in `pyproject.toml`. Do not remove the routing; source builds on Vast.ai wasted time in Phase 0.
+- The lockfile resolves for two platforms (`tool.uv.required-environments`): Linux x86_64 (cu128 wheels for training and Hetzner deploy) and Darwin arm64 (PyPI CPU wheels for local dev). PyG extensions are Linux-only via `sys_platform == 'linux'` markers.
+
 ### Imports
 
 - Use absolute imports rooted at `src.` (e.g. `from src.models.hgt import HGTModel`).
