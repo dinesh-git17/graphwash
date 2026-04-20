@@ -672,18 +672,20 @@ Estimate: 0.25d
 Status: pending
 
 What:
-Pre-push hook runs `mypy --strict` project-wide and `pytest -q` on changed modules to catch type regressions and test breakage before push.
+Pre-push hooks run `mypy --strict` project-wide on `src/` and the full `pytest` suite (without coverage reporting) to catch type regressions and test breakage before push. Ships a minimal `tests/test_smoke.py` so the pytest gate has something to run against.
 
 Approach / Files:
 
-- .pre-commit-config.yaml :: pre-push stage hook invoking `uv run mypy src` project-wide
-- .pre-commit-config.yaml :: pre-push stage hook invoking pytest
-- docs/dev-guide.md :: `pre-commit install --hook-type pre-push` instructions
+- .pre-commit-config.yaml :: pre-push stage hook invoking `uv run mypy --strict src` project-wide
+- .pre-commit-config.yaml :: pre-push stage hook invoking `uv run pytest -q --no-cov`
+- tests/test_smoke.py :: new; asserts `graphwash` package importability so the pytest gate has a registered test
+- docs/dev-guide.md :: `pre-commit install --hook-type pre-push` instructions, pre-push hook inventory, coverage-on-CI rationale
 
 Acceptance:
 [ ] Pre-push hook runs `mypy --strict` on `src/`
-[ ] Pre-push hook runs pytest on `git push`
+[ ] Pre-push hook runs `pytest` on `git push`
 [ ] Failing test blocks push (manual test)
+[ ] `tests/test_smoke.py` collected and green on `uv run pytest -q`
 [ ] Conventional commit landed on a PR into main
 
 ### T-009 — GitHub Actions CI workflow [kind:infra]
@@ -701,7 +703,7 @@ CI workflow running lint + typecheck + test on pull_request and push to main. Tu
 Approach / Files:
 
 - .github/workflows/ci.yml :: jobs = lint (ruff), typecheck (mypy --strict), test (pytest) on python 3.12
-- Smoke test in `tests/test_smoke.py` ensures `pytest` returns green even before any src code exists
+- tests/test_smoke.py already exists from T-008 and provides the CI-green anchor
 
 Acceptance:
 [ ] CI runs on pull_request

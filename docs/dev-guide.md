@@ -185,11 +185,19 @@ uv run pre-commit install
 git hooks in one command because `.pre-commit-config.yaml` sets
 `default_install_hook_types: [pre-commit, commit-msg]`.
 
-The pre-push stage is not active yet. When T-008 lands, add it:
+Pre-push stage installs separately because `default_install_hook_types`
+only covers commit and commit-msg. After the initial
+`uv run pre-commit install`, run once per clone:
 
 ```bash
 uv run pre-commit install --hook-type pre-push
 ```
+
+Both installs are idempotent. First pre-push invocation downloads no
+new repos (the pre-push hooks are `repo: local`) but does warm
+`.mypy_cache/`, which makes the first push on a fresh clone
+noticeably slower than subsequent pushes. The cache is gitignored, so
+this repeats on every new clone (including Vast.ai instances).
 
 #### Hook inventory
 
@@ -223,6 +231,21 @@ A local shell hook (`scripts/check-commit-scope.sh`) that regex-validates
 the scope field. Valid scopes are a `t-NNN` task ID or the literal
 `training`. The scope is mandatory; the `!` breaking-change marker is
 optional.
+
+**`repo: local` pre-push hooks** (pre-push stage)
+
+- `mypy-strict`: runs `uv run mypy --strict src` project-wide against
+  `[tool.mypy] strict = true`. Catches type regressions before push;
+  CI (T-009) re-runs it as the hard gate.
+- `pytest-full`: runs `uv run pytest -q --no-cov` over the full
+  `tests/` suite. The `--no-cov` flag is hook-specific: bare
+  `uv run pytest` inherits `addopts = "... --cov=src --cov-branch ..."`
+  from `[tool.pytest.ini_options]` and enforces the 70% floor from
+  `[tool.coverage.report]`, which is what CI (T-009) runs and what a
+  developer gets locally when they invoke pytest directly. The hook
+  opts out so a mid-feature push (new module, tests not yet written)
+  is not blocked by a coverage drop the CI gate will still catch at
+  PR time.
 
 #### Commit message format
 
