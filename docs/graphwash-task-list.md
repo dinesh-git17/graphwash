@@ -185,7 +185,7 @@ Source: sum of `Estimate:` fields per phase, with absorption applied per spec §
 
 | Phase    | Raw estimate | kind:test tasks | kind:docs tasks | Notes                                  |
 | -------- | ------------ | --------------- | --------------- | -------------------------------------- |
-| Pilot    | 6.75d        | 0               | 0.75d           |                                        |
+| Pilot    | 7.75d        | 0               | 0.75d           | T-015 (PR status aggregator) added +1d |
 | Phase 0  | 2.75d        | 0.25d           | 0               |                                        |
 | Phase 1  | 3.25d        | 0.25d           | 0.5d            |                                        |
 | Phase 2  | 5.25d        | 0.25d           | 0.75d           | T-040 reduced 1d → 0.5d (Task 14 trim) |
@@ -196,20 +196,20 @@ Source: sum of `Estimate:` fields per phase, with absorption applied per spec §
 
 | Aggregate                                            | Value                                                 |
 | ---------------------------------------------------- | ----------------------------------------------------- |
-| **Raw total**                                        | 29.0d                                                 |
+| **Raw total**                                        | 30.0d                                                 |
 | Test total (full absorption)                         | 1.5d                                                  |
 | Docs total (50% absorption)                          | 2.5d                                                  |
 | Total absorption                                     | 2.75d                                                 |
-| **Focused total**                                    | 26.25d                                                |
+| **Focused total**                                    | 27.25d                                                |
 | **Focused-day budget (PRD §19, updated 2026-04-18)** | ~26d (renegotiated from 13-20d)                       |
-| **Budget headroom**                                  | -0.25d (within tolerance given ~2d absorption buffer) |
+| **Budget headroom**                                  | -1.25d (over budget; pressure acknowledged in §trim)  |
 
 ### Trim pass applied
 
 - T-064 (Load-demo button + sample endpoints, REQ-040/REQ-041) moved to `Status: deferred`; deferred to v1.0.1. Removed 0.5d from Phase 4 raw.
 - T-040 (sweep execution) estimate reduced from 1d to 0.5d (≥6 runs instead of ≥12); acceptance bullet "≥ 12 sweep runs" → "≥ 6 sweep runs". Removed 0.5d from Phase 2 raw.
 - T-065 (cross-browser smoke test) scope reduced to Chrome + Firefox only; Safari acceptance bullet dropped with note "Safari dropped per Task 14 trim pass; deferred to v1.0.1". No estimate change (0.25d).
-- Trims applied cumulatively: raw 30.0d → 29.0d; focused 27.25d → 26.25d. Focused total still exceeds the 20d upper bound by 6.25d after exhausting the Task 14 priority list; surfacing as a WARN for Dinesh — further trims or budget renegotiation required before Phase 6 unblock.
+- Trims applied cumulatively: raw 30.0d → 29.0d; focused 27.25d → 26.25d. T-015 (PR status aggregator, 1d, added 2026-04-20 post-T-009) re-expanded raw to 30.0d and focused to 27.25d. Focused total exceeds the ~26d renegotiated budget by 1.25d and exceeds the original 20d upper bound by 7.25d after exhausting the Task 14 priority list; surfacing as a WARN for Dinesh — further trims or budget renegotiation required before Phase 6 unblock.
 
 **2026-04-18 renegotiation:** PRD §19 budget renegotiated from 13-20d to ~26d focused to match the granular task-list reality. Deadline feasibility: ~2d gap vs the 2026-05-31 window, mitigated by background-clock soak time (T-070) and parallel Vast.ai spikes. Further-trim candidates logged in PRD §19 feasibility note.
 
@@ -235,6 +235,7 @@ flowchart LR
     T012[T-012<br/>Label set]:::pilot
     T013[T-013<br/>Issue templates]:::pilot
     T014[T-014<br/>PR template]:::pilot
+    T015[T-015<br/>PR status aggregator]:::pilot
     T019[T-019<br/>Hetzner provision]:::pilot
     T020[T-020<br/>Caddy rate-limit]:::pilot
     T021{T-021<br/>Pilot gate}:::pilot
@@ -307,6 +308,7 @@ flowchart LR
     T006 --> T009
     T009 --> T010
     T009 --> T011
+    T009 --> T015
     T001 --> T012
     T012 --> T013
     T013 --> T014
@@ -756,7 +758,7 @@ Acceptance:
 [ ] No push step present (confirm by reading workflow)
 [ ] Conventional commit landed on a PR into main
 
-### T-012 — Label set with hex colours [kind:infra]
+### T-012 — Label set with hex colours + auto-label workflow [kind:infra]
 
 Phase: Pilot
 Links: —
@@ -766,17 +768,22 @@ Estimate: 0.5d
 Status: pending
 
 What:
-Colour-coded label taxonomy covering phases, REQ-IDs (v1 only), kinds, and sizes. Applied via `gh label create` or label-sync action.
+Colour-coded label taxonomy covering phases, REQ-IDs (v1 only), kinds, and sizes, plus a PR auto-label workflow that applies `kind:*` from branch-prefix and `size:*` from changed-lines on every `pull_request_target`. `kind:decision` and `kind:gate` remain manual (content categories, not commit types). `phase:*` and `req:*` are deferred to a proposed T-012.1 follow-up because they require parsing the task-list.
 
 Approach / Files:
 
 - .github/labels.yml :: ~50 labels grouped: `phase:pilot`..`phase:5b` (8), `req:NNN` one per v1 REQ-ID (~29 non-contiguous), `kind:impl|test|infra|docs|spike|decision|ops|gate` (8), `size:xs|s|m|l` (4); hex colours per group
 - scripts/sync_labels.sh :: wraps `gh label create` from `.github/labels.yml`
+- .github/workflows/pr-label.yml :: `pull_request_target` trigger. Job `kind` runs `actions/labeler@v5` with `configuration-path: .github/labeler.yml` and `sync-labels: true`. Job `size` runs `CodelyTV/pr-size-labeler@v1` with thresholds xs≤10, s≤100, m≤500, l≤1000, xl clamped into `size:l`. Fallback to `pascalgn/size-label-action@v0.5` if CodelyTV breaks post-Node-20-deprecation (action has not released in over a year as of 2026-04).
+- .github/labeler.yml :: head-branch regex mapping. `kind:impl` ← `^feat/|^fix/|^refactor/`; `kind:test` ← `^test/`; `kind:infra` ← `^infra/`; `kind:docs` ← `^docs/`; `kind:spike` ← `^spike/`; `kind:ops` ← `^ops/`. `chore/` has no mapping (no `kind:chore` in the taxonomy).
+- docs/dev-guide.md :: labeler section + manual-only label dimensions (`phase:*`, `req:*`, `kind:decision`, `kind:gate`)
 
 Acceptance:
 [ ] `.github/labels.yml` committed
 [ ] `scripts/sync_labels.sh` creates all labels against the repo (idempotent)
 [ ] Each group uses a distinct hex-colour family
+[ ] `pr-label.yml` applies a `kind:*` label on a new PR from a conventional branch name (feat/fix/refactor/test/infra/docs/spike/ops)
+[ ] `pr-label.yml` applies a `size:*` label on a new PR from lines changed
 [ ] Conventional commit landed on a PR into main
 
 ### T-013 — Issue templates [kind:infra]
@@ -823,6 +830,33 @@ Approach / Files:
 Acceptance:
 [ ] Template renders on new PR
 [ ] Checklist includes conventional-commit reminder and task-ID link field
+[ ] Conventional commit landed on a PR into main
+
+### T-015 — PR status aggregator comment workflow [kind:infra]
+
+Phase: Pilot
+Links: —
+BlockedBy: T-009
+Blocks: —
+Estimate: 1d
+Status: pending
+
+What:
+Sticky PR comment aggregating workflow statuses (per-job rows for `ci`; one row per other tracked workflow) with a mergeability footer. Listens to `workflow_run` events for `[ci, pr-label, docs-site]` plus `pull_request` opens; upserts a single comment via `marocchino/sticky-pull-request-comment@v2` keyed on `header: graphwash-status`. Soft-depends on T-012: if T-012 has not merged yet, the `pr-label` row simply does not appear until it does. T-011 (Docker CI stub) will amend the `workflows:` filter to add `docker-ci`.
+
+Approach / Files:
+
+- .github/workflows/pr-status.yml :: triggers `workflow_run` for `[ci, pr-label, docs-site]` (`types: [requested, completed]`) and `pull_request` (`types: [opened, synchronize, reopened]`). Single job on `ubuntu-24.04`, `permissions: pull-requests: write, actions: read, contents: read`. Steps: `actions/checkout@v4` → `scripts/resolve-pr-number.sh` (outputs `number` + `sha`) → `scripts/build-pr-status.sh` (outputs `body`) → `marocchino/sticky-pull-request-comment@v2` gated by `if: steps.pr.outputs.number != ''`.
+- scripts/resolve-pr-number.sh :: resolves PR number and head SHA across both trigger events. `pull_request`: read from `$GITHUB_EVENT_PATH`. `workflow_run`: read `.workflow_run.pull_requests[0].number` with fallback to `gh pr list --search "$HEAD_SHA" --state open --json number`. Emits `number` and `sha` via `$GITHUB_OUTPUT`.
+- scripts/build-pr-status.sh :: queries `gh api /repos/$REPO/actions/runs?head_sha=$HEAD_SHA&per_page=50`; groups by workflow name; picks the run with max `id` per workflow (GitHub run IDs are monotonically increasing); fans out `ci` into per-job rows via `gh api /repos/$REPO/actions/runs/$RUN_ID/jobs`. Status glyphs: ✅ success, ❌ failure, ⏹ cancelled, ⏭ skipped, ⏳ in progress, ➖ neutral. Duration = `updated_at - started_at` rounded to the second (terminal states only; in-progress rows show `—`). Mergeability footer from `gh pr view $PR_NUMBER --json mergeable,mergeStateStatus`: CLEAN → ✅ mergeable; UNSTABLE → ⚠️ mergeable but non-required checks failing; BLOCKED → 🛑 blocked; BEHIND → ⏪ behind main; DIRTY → 💥 merge conflict; UNKNOWN → ⏳ mergeability computing. Race-condition rule: filter all runs by `head_sha == HEAD_SHA` first, then max-ID per workflow.
+- docs/dev-guide.md :: short section describing the status comment and its trigger semantics
+
+Acceptance:
+[ ] `pr-status.yml` deployed; first run posts the sticky comment within 30s of PR open
+[ ] Comment updates in place on `workflow_run: requested` with an in-progress row for the triggered workflow
+[ ] Comment updates in place on `workflow_run: completed` with terminal status glyph and duration
+[ ] Mergeability footer reflects current `gh pr view` state across CLEAN / UNSTABLE / BLOCKED / BEHIND / DIRTY / UNKNOWN
+[ ] Double-push race (two commits within 2s): final rendered comment reflects only the latest SHA's runs
 [ ] Conventional commit landed on a PR into main
 
 ### T-019 — S-03 Hetzner provision + Docker smoke test [kind:spike]
