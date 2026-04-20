@@ -498,7 +498,7 @@ Links: —
 BlockedBy: —
 Blocks: T-002, T-003, T-005, T-012
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Public GitHub repo for graphwash with description, topics, and social preview set.
@@ -510,10 +510,10 @@ Approach / Files:
 - Settings → Social preview :: upload preview PNG
 
 Acceptance:
-[ ] Repo public at github.com/<owner>/graphwash
-[ ] Description set (1-line project pitch)
-[ ] Topics ≥ 3 including graph-ml, aml, pytorch-geometric
-[ ] Social preview image uploaded
+[x] Repo public at github.com/<owner>/graphwash
+[x] Description set (1-line project pitch)
+[x] Topics ≥ 3 including graph-ml, aml, pytorch-geometric
+[x] Social preview image uploaded
 [ ] Conventional commit landed on a PR into main
 
 ### T-002 — Branch protection on `main` [kind:infra]
@@ -523,7 +523,7 @@ Links: —
 BlockedBy: T-001
 Blocks: T-007, T-009
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Protect `main` so every change lands via PR with green CI, linear history, no force-pushes.
@@ -534,11 +534,11 @@ Approach / Files:
 - Rules: require PR before merge, require CI checks to pass, require linear history, block force-push, no bypass for admins
 
 Acceptance:
-[ ] Rule "require pull request" enabled
-[ ] Rule "require status checks to pass" enabled (checks added after T-009)
-[ ] Rule "require linear history" enabled
-[ ] Rule "do not allow force pushes" enabled
-[ ] Admin bypass disabled
+[x] Rule "require pull request" enabled
+[x] Rule "require status checks to pass" enabled (checks added after T-009)
+[x] Rule "require linear history" enabled
+[x] Rule "do not allow force pushes" enabled
+[x] Admin bypass disabled
 [ ] Conventional commit landed on a PR into main
 
 ### T-003 — Add CODEOWNERS, SECURITY.md, LICENSE (MIT) [kind:docs]
@@ -548,7 +548,7 @@ Links: —
 BlockedBy: T-001
 Blocks: T-004
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Portfolio-grade baseline files: ownership, security contact, open-source licence.
@@ -560,11 +560,11 @@ Approach / Files:
 - LICENSE :: MIT, year 2026, Dinesh Dawonauth
 
 Acceptance:
-[ ] `.github/CODEOWNERS` committed
-[ ] `SECURITY.md` committed
-[ ] `LICENSE` committed (MIT text verbatim)
+[x] `.github/CODEOWNERS` committed
+[x] `SECURITY.md` committed
+[x] `LICENSE` committed (MIT text verbatim)
 [ ] ruff + mypy --strict clean; pytest green
-[ ] Conventional commit landed on a PR into main
+[x] Conventional commit landed on a PR into main
 
 ### T-004 — README skeleton [kind:docs]
 
@@ -573,7 +573,7 @@ Links: —
 BlockedBy: T-003
 Blocks: T-076
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
 README.md scaffold with badges row, benchmark placeholder, demo link placeholder, architecture slot, setup section, links to PRD/dev-guide/ADRs.
@@ -583,11 +583,11 @@ Approach / Files:
 - README.md :: title, one-line pitch, badges (CI / license / python), BENCHMARKS placeholder row, demo URL placeholder, architecture diagram slot, Setup section (uv sync, pytest), Links section to `docs/graphwash-prd.md`, `docs/dev-guide.md`, `docs/adr/`
 
 Acceptance:
-[ ] README.md committed
-[ ] Badges row renders (CI badge may show "unknown" until T-009 runs once)
-[ ] BENCHMARKS placeholder table present
-[ ] Links section resolves to existing files
-[ ] Conventional commit landed on a PR into main
+[x] README.md committed
+[x] Badges row renders (CI badge may show "unknown" until T-009 runs once)
+[x] BENCHMARKS placeholder table present
+[x] Links section resolves to existing files
+[x] Conventional commit landed on a PR into main
 
 ### T-005 — Add `.editorconfig`, `.gitignore`, `.gitattributes` [kind:infra]
 
@@ -596,7 +596,7 @@ Links: —
 BlockedBy: T-001
 Blocks: T-006
 Estimate: 0.25d
-Status: pending
+Status: in_progress
 
 What:
 Editor/whitespace consistency and Python-aware ignore/attribute rules.
@@ -608,8 +608,8 @@ Approach / Files:
 - .gitattributes :: `* text=auto eol=lf`, `*.pt binary`, `*.png binary`
 
 Acceptance:
-[ ] `.editorconfig` committed
-[ ] `.gitignore` committed (covers wandb, .pt weights, caches)
+[x] `.editorconfig` committed
+[x] `.gitignore` committed (covers wandb, .pt weights, caches)
 [ ] `.gitattributes` committed
 [ ] Conventional commit landed on a PR into main
 
