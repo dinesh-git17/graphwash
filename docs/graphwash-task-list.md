@@ -695,7 +695,7 @@ Links: —
 BlockedBy: T-002, T-006
 Blocks: T-010, T-011
 Estimate: 0.5d
-Status: in_progress
+Status: done
 
 What:
 CI workflow running lint + typecheck + test on pull_request and push to main. Turns the branch-protection status checks from "unknown" to required.
@@ -706,11 +706,11 @@ Approach / Files:
 - tests/test_smoke.py already exists from T-008 and provides the CI-green anchor
 
 Acceptance:
-[ ] CI runs on pull_request
-[ ] CI runs on push to main
-[ ] Both `lint` and `test` jobs pass on an empty-code PR
-[ ] Status checks registered in branch protection (T-002 updated)
-[ ] Conventional commit landed on a PR into main
+[x] CI runs on pull_request
+[x] CI runs on push to main
+[x] Both `lint` and `test` jobs pass on an empty-code PR
+[x] Status checks registered in branch protection (T-002 updated)
+[x] Conventional commit landed on a PR into main
 
 ### T-010 — Dependabot config [kind:infra]
 
