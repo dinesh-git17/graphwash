@@ -81,3 +81,6 @@ Thumbs.db
 
 # docs site build output
 site/_dist/
+
+# Local artefacts
+scratch/

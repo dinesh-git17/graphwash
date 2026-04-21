@@ -885,7 +885,7 @@ Acceptance:
 [x] PRD §11a S-03 row moved to DONE
 [x] Hetzner instance type recorded in `docs/ops/hetzner.md`
 [x] ADR-0006 appended (instance choice differs from CPX31 baseline: hel1-dc2 8 GB reuse)
-[ ] Conventional commit landed on a PR into main
+[x] Conventional commit landed on a PR into main (PR #29, merged 2026-04-21)
 
 ### T-020 — S-04 Caddy rate-limit + UptimeRobot [kind:spike]
 
