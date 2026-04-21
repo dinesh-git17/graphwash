@@ -223,7 +223,7 @@ Top-level repo shape is **locked** per PRD §9a. Do not add new top-level direct
 
 ### PR status comment
 
-A `pr-status` workflow (`.github/workflows/pr-status.yml`) listens to `workflow_run` events from `ci`, `pr-label`, `docs-site`, and `docker-ci`, plus `pull_request` opens. It upserts a single sticky comment on the PR via `marocchino/sticky-pull-request-comment@v3` at header `graphwash-status`, with per-job rows for `ci` and one row per other tracked workflow, plus a mergeability footer derived from `gh pr view`.
+A `pr-status` workflow (`.github/workflows/pr-status.yml`) listens to `workflow_run` events from `ci`, `pr-label`, `docs-site`, and `docker-ci`. It upserts a single sticky comment on the PR via `marocchino/sticky-pull-request-comment@v3` at header `graphwash-status`, with per-job rows for `ci` and one row per other tracked workflow, plus a mergeability footer derived from `gh pr view`.
 
 The comment re-renders on every tracked workflow run. In-progress rows carry the `[RUN]` glyph; terminal rows show `[PASS]` / `[FAIL]` / `[CANX]` / `[SKIP]` / `[----]` and a duration. Concurrency is keyed on the triggering event's head SHA with `cancel-in-progress: true`, so a later render for the same SHA supersedes an earlier one, and a double-push wipes any render in flight for the older SHA.
 

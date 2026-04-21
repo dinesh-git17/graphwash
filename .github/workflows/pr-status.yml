@@ -4,11 +4,9 @@ on:
   workflow_run:
     workflows: [ci, pr-label, docs-site, docker-ci]
     types: [requested, completed]
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 concurrency:
-  group: pr-status-${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+  group: pr-status-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
 
 permissions:
