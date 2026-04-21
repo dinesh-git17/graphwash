@@ -1,0 +1,7 @@
+{
+  "action": "opened",
+  "pull_request": {
+    "number": 42,
+    "head": { "sha": "abc1234567890abcdef1234567890abcdef12345" }
+  }
+}
