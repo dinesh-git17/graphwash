@@ -16,4 +16,6 @@ COPY src/ ./src/
 COPY README.md ./
 RUN uv sync --frozen --no-editable --no-dev
 
-CMD ["echo", "v0 stub"]
+EXPOSE 8002
+
+CMD ["uv", "run", "uvicorn", "graphwash.api.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1"]
