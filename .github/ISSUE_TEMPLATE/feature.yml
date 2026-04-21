@@ -1,0 +1,46 @@
+name: Feature request
+description: Propose a new capability or behaviour change.
+title: "feat: "
+labels: ["kind:impl"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: confirm the feature is in scope per PRD §5 (Out of
+        Scope) and does not hit a tripwire in `CLAUDE.md` §5. If it does,
+        it needs a new PRD cycle, not an issue.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user-visible problem does this solve? Which PRD requirement or user story does it map to?
+      placeholder: |
+        UC1 users cannot tell which counterparty dominated an account's
+        inbound value. REQ-013 requires the frontend to communicate this.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Concrete design sketch. Name the files you expect to touch and the public interfaces that change.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Two or more options you rejected, and why. "None" is a sign the problem was not thought through.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable checks that tell us the feature is done. One bullet per check. No "works as expected".
+      placeholder: |
+        - Endpoint returns top-5 counterparties with stable ordering.
+        - p95 latency under 200 ms on the IT-AML Medium dataset.
+        - Unit tests cover empty / single-counterparty / tie cases.
+    validations:
+      required: true

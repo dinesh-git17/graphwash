@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+# contact_links intentionally empty for v1. graphwash is an unauthenticated
+# public demo with a single maintainer; no Discussions, chat, or support
+# inbox to route to. Add links here if that changes.
+contact_links: []

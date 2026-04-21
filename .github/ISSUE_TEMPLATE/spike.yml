@@ -1,0 +1,55 @@
+name: Spike / investigation
+description: Time-boxed investigation to resolve a PRD §11a unknown or §18 open question.
+title: "spike: "
+labels: ["kind:spike"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Spikes are bounded. If you cannot write a kill signal, you are
+        not running a spike — you are running an open-ended task.
+  - type: input
+    id: spike_id
+    attributes:
+      label: Spike / question ID
+      description: "PRD §11a or §18 ID (e.g., S-05, Q-08). Leave blank if this proposes a new one."
+      placeholder: "S-05"
+  - type: textarea
+    id: unknown
+    attributes:
+      label: The unknown
+      description: What do we not know? State it as a question whose answer is either a fact or a go/no-go decision.
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: Method
+      description: How will you attempt to answer the question? Name the experiments, probes, or reads.
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: Success criteria
+      description: What does "spike resolved" look like? One or more observable outcomes.
+    validations:
+      required: true
+  - type: textarea
+    id: kill
+    attributes:
+      label: Kill signal
+      description: What would make you abandon the spike before the target date and escalate instead?
+      placeholder: |
+        If after 4 hours we still cannot load the sub-graph in under
+        5 seconds, stop and escalate to Dinesh for a scope decision.
+    validations:
+      required: true
+  - type: input
+    id: target_date
+    attributes:
+      label: Target resolution date
+      description: "ISO date (YYYY-MM-DD). Spikes past this date convert to a deferred PRD §18 open question."
+      placeholder: "2026-05-02"
+    validations:
+      required: true
