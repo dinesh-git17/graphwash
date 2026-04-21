@@ -1,0 +1,48 @@
+name: pr-status
+
+on:
+  workflow_run:
+    workflows: [ci, pr-label, docs-site, docker-ci]
+    types: [requested, completed]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-status-${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  actions: read
+  contents: read
+
+jobs:
+  post:
+    name: post
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: pr
+        name: resolve pr number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/resolve-pr-number.sh
+
+      - id: body
+        if: steps.pr.outputs.number != ''
+        name: build comment body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: bash scripts/build-pr-status.sh
+
+      - if: steps.pr.outputs.number != ''
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: graphwash-status
+          number: ${{ steps.pr.outputs.number }}
+          message: ${{ steps.body.outputs.body }}
