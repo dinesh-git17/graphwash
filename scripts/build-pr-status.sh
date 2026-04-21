@@ -78,12 +78,12 @@ for name in "${tracked_workflows[@]}"; do
     run_id="$(printf '%s' "$run" | jq -r '.id')"
     if [[ "$name" == "ci" ]]; then
         jobs_json="$(gh api "/repos/$repo/actions/runs/$run_id/jobs" | jq -c '.jobs')"
-        while IFS=$'\t' read -r jname jstatus jconclusion jstarted jcompleted; do
+        while IFS=$'\x1f' read -r jname jstatus jconclusion jstarted jcompleted; do
             glyph="$(glyph_for "$jstatus" "$jconclusion")"
             dur="$(fmt_duration "$jstarted" "$jcompleted" "$jstatus")"
             label="${jconclusion:-${jstatus//_/ }}"
             rows+="| ci | ${jname} | ${glyph} ${label} | ${dur} |"$'\n'
-        done < <(printf '%s' "$jobs_json" | jq -r '.[] | [.name, .status, (.conclusion // ""), .started_at, (.completed_at // "")] | @tsv')
+        done < <(printf '%s' "$jobs_json" | jq -r '.[] | [.name, .status, (.conclusion // ""), .started_at, (.completed_at // "")] | join("")')
     else
         status="$(printf '%s' "$run" | jq -r '.status')"
         conclusion="$(printf '%s' "$run" | jq -r '.conclusion // ""')"
