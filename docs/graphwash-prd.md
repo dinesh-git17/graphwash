@@ -5,7 +5,7 @@
 **Author:** Dinesh
 **Status:** In Review
 **Created:** 2026-04-18
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-21
 **Stakeholders:** Dinesh (sole engineer, product owner)
 **Target repo:** `/Users/Dinesh/dev/graphwash`
 **Trusted systems:** N/A (v1 uses no persistent probe-eligible systems)
@@ -31,6 +31,7 @@
 - 2026-04-18 — Phase 04 artefact pack assembled: `docs/graphwash-diagrams.md` (system / deployment / UC1 sequence Mermaid); `docs/adr/` index + ADR-0001..0005 (Nygard minimal); `docs/dev-guide.md` (local setup + project-specific conventions); REQ-013a response schemas + error envelope added (§8); §9a preamble declares the PRD doubles as v1 TDD.
 - 2026-04-18 — Phase 05 spike plan added as §11a (S-00 DONE; S-01 CPU latency micro-spike, S-02 IT-AML schema validation, S-03 Hetzner + Docker smoke test, S-04 Caddy rate-limit + UptimeRobot — all MUST RUN before Phase 06 with kill signals and target dates; R-01 HGT-beats-baseline and R-02 attention-non-degeneracy marked ACCEPTED RISK with fallback ladders); §18 Q2 and Q5 absorbed into spike plan, Q8 annotated with feasibility cross-ref.
 - 2026-04-18 — §19 phase budgets renegotiated to match the granular task list (`docs/graphwash-task-list.md`). Added Pilot Phase row (~7d), updated Phase 0/1/3 budgets to reflect honest per-PR atomic estimates. Focused total raised from 13-20d to ~26d. Deadline feasibility note added (gap vs. 2026-05-31 is ~2d; mitigation enumerated in §19).
+- 2026-04-21: T-019 / S-03 closed. Reused existing hel1-dc2 8 GB VPS; all four acceptance gates cleared (see `docs/ops/hetzner.md`). PRD RAM floor relaxed to ">= 8GB conditional on Phase 2 idle RSS <= 3 GB, else >= 16GB" across REQ-021, §8 P0 NFR row, §9 NFR performance line, §11 assumption 5, §12 dependency row, §13 break-question row 5. ADR-0006 locks the decision.
 
 ---
 
@@ -73,7 +74,7 @@ A trained model with no deployment surface and no explanation layer is a Jupyter
 | Priority | Goal                                  | Metric                                                         | Baseline                              | Target                                                         | Timeframe              |
 | -------- | ------------------------------------- | -------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------- | ---------------------- |
 | P0       | Exceed IBM's published baseline       | Minority class F1 on IT-AML Medium test set                    | IBM Multi-GNN: ~0.67 F1               | ≥ 0.72 F1                                                      | At training completion |
-| P0       | Fast CPU inference for demo viability | p95 prediction latency for a single-transaction subgraph query | Not established                       | < 200ms on Hetzner 16GB RAM VPS                                | At deployment          |
+| P0       | Fast CPU inference for demo viability | p95 prediction latency for a single-transaction subgraph query | Not established                       | < 200ms on Hetzner ≥ 8GB RAM VPS (ADR-0006 conditional)        | At deployment          |
 | P0       | Explainable predictions               | Attention subgraph returned per flagged edge                   | None (baseline has no explainability) | Top-10 attention edges returned with every positive prediction | At API completion      |
 | P1       | Reproducible training                 | Full training run reproducible from seed and config            | N/A                                   | Random seed locked, W&B run logged, config YAML committed      | At training completion |
 | P1       | Portfolio-ready demo                  | Live URL serving inference and visualization                   | N/A                                   | Demo accessible at public Hetzner VPS URL                      | At deployment          |
@@ -347,7 +348,7 @@ Frontend
 Deployment
 
 - REQ-020: The system must be containerized via Docker, with a production `Dockerfile` that: installs Python 3.12 dependencies via `uv`, copies model weights, and starts Uvicorn on port 8000.
-- REQ-021: The deployed container must serve the full application (API + static frontend) from a Hetzner VPS with ≥ 16GB RAM, without requiring GPU at inference time.
+- REQ-021: The deployed container must serve the full application (API + static frontend) from a Hetzner VPS with ≥ 8GB RAM if Phase 2 HGT idle RSS measures ≤ 3 GB (else ≥ 16GB RAM per the §10 fallback ladder), without requiring GPU at inference time. See ADR-0006.
 
 ---
 
@@ -387,7 +388,7 @@ Deployment
 
 Performance
 
-- p95 inference latency for a single subgraph query (≤ 500 edges): < 200ms on Hetzner 16GB RAM VPS (CPU-only)
+- p95 inference latency for a single subgraph query (≤ 500 edges): < 200ms on Hetzner ≥ 8GB RAM VPS (CPU-only, ADR-0006 conditional)
 - API startup time (model load): < 10 seconds
 - `GET /api/v1/health` response time: < 50ms
 
@@ -550,7 +551,7 @@ graphwash/
 - **IBM Multi-GNN baseline F1 of ~0.67** is the published figure from the NeurIPS 2023 paper on the Medium dataset. If this number is on a different split or subset, the comparison table must note the discrepancy.
 - **PyTorch 2.8.0+cu128 wheels are compatible with CUDA 13.1.** ✅ Verified on 2026-04-18 on Vast.ai RTX 5090 instance. `torch.cuda.is_available()` returned `True`, GPU tensor ops executed correctly, all PyG extensions loaded cleanly.
 - **HGT with attention explainability is feasible on IT-AML Medium in CPU inference.** The 2-layer, hidden-dim-64 architecture is expected to produce a model ≤ 50MB. Larger architectures may require quantization for acceptable CPU latency.
-- **The Hetzner VPS has sufficient RAM to load the model and serve requests.** A 16GB RAM instance is assumed to be sufficient for a model in the 10-50MB range with PyG/PyTorch dependencies.
+- **The Hetzner VPS has sufficient RAM to load the model and serve requests.** An ≥ 8GB RAM instance is assumed to be sufficient for a model in the 10-50MB range with PyG/PyTorch dependencies, contingent on Phase 2 idle RSS ≤ 3 GB. The 16GB fallback tier is retained on the §11a / ADR-0006 ladder if the Phase 2 measurement exceeds 3 GB. T-019 verified the 8 GB posture against a stub (`HGTStub`) on 2026-04-21; binding verdict defers to the Phase 2 gate.
 
 ---
 
@@ -565,7 +566,7 @@ Formal register of load-bearing unknowns. Each entry is either DONE, MUST RUN (w
 | S-00 | CUDA 13.1 + PyTorch 2.8.0+cu128 + PyG 2.7.0 compat on Vast.ai RTX 5090 | ✅ DONE       | — (closed 2026-04-18) |
 | S-01 | CPU p95 latency feasibility (<200 ms on 500-edge subgraph)             | MUST RUN      | 2026-04-22            |
 | S-02 | IT-AML Medium schema matches NeurIPS 2023 paper                        | MUST RUN      | 2026-04-22            |
-| S-03 | Hetzner 16 GB instance + Docker + Caddy viability                      | MUST RUN      | 2026-05-05            |
+| S-03 | Hetzner VPS + Docker + Caddy viability (8 GB hel1-dc2 reuse)           | DONE          | closed 2026-04-21     |
 | S-04 | Caddy per-IP rate-limit config + UptimeRobot 2-min probe cadence       | MUST RUN      | 2026-05-06            |
 | R-01 | HGT beats IBM Multi-GNN baseline (F1 ≥ 0.72)                           | ACCEPTED RISK | End of Phase 2        |
 | R-02 | HGT attention weights are non-degenerate (signal for explainability)   | ACCEPTED RISK | End of Phase 2        |
@@ -594,10 +595,10 @@ Closed 2026-04-18 on Vast.ai RTX 5090. `torch.cuda.is_available()` returned true
 
 ### S-03 — Hetzner provision + stub Docker smoke test
 
-- **Unknown:** Does a 16 GB Hetzner instance actually run the stack with sub-30 s cold-start and idle RAM headroom? Subsumes §18 Q5 (instance type choice).
-- **Method:** Provision a Hetzner CPX31 (or closest ≥16 GB equivalent). Build a stub Docker image: FastAPI + Pydantic v2 models + a dummy `HGTModel` class returning canned predictions. Deploy behind Caddy with TLS on a throwaway subdomain. Measure container cold-start with `time docker run`, idle RAM via `docker stats`, `/api/v1/health` latency via `curl -w`.
+- **Unknown (CLOSED 2026-04-21):** Does the Hetzner stack actually run the stub with sub-30 s cold-start and idle RAM headroom? Closed by reusing the existing hel1-dc2 8 GB VPS (ADR-0006); all four acceptance gates measured within bounds (see `docs/ops/hetzner.md`).
+- **Method (as executed):** Reused the existing `helsinki-paradise` hel1-dc2 VPS (4 vCPU, 7.6 GiB RAM). Built a stub Docker image: FastAPI + Pydantic v2 models + a `HGTStub` class returning canned predictions. Deployed behind Caddy with TLS on `graphwash.dineshd.dev`. Measured container cold-start with a `time docker run` + readiness-poll harness, idle RAM via `docker stats`, `/api/v1/health` p95 via `ab -n 500 -c 10`, TLS issuance from `journalctl -u caddy`.
 - **Success criteria:** Cold-start < 30 s; idle RAM < 2 GB; health endpoint p95 < 50 ms; Caddy TLS certificate issued by Let's Encrypt within 2 min of first request.
-- **Kill signal:** Cold-start > 60 s (indicates model-load pattern needs changes) or idle RAM approaching 16 GB (invalidates §10 Constraint "≥16 GB" — need larger instance or architecture changes). Either outcome forces a Phase 3 / §9a amendment before full implementation.
+- **Outcome:** All four gates cleared. ADR-0006 locks the 8 GB reuse with a conditional ≥ 16 GB fallback triggered by the Phase 2 idle RSS measurement.
 - **Owner:** Dinesh.
 - **Cost:** ~€10/mo ongoing. Accepted as the cost of retiring the deployment unknown early.
 - **Cross-refs:** §11 assumption 5, §17 Phase 5, §18 Q5.
@@ -636,7 +637,7 @@ Closed 2026-04-18 on Vast.ai RTX 5090. `torch.cuda.is_available()` returned true
 | PyG 2.7.0                   | Graph ML            | Dinesh | available             | none — core                       | ✅ Verified. `HGTConv`, `NeighborLoader` confirmed working. Extensions (torch-scatter 2.1.2+pt28cu128, torch-sparse 0.6.18+pt28cu128, torch-cluster 1.6.3+pt28cu128) installed via `https://data.pyg.org/whl/torch-2.8.0+cu128.html`. | None — verified                              |
 | uv 0.11.1                   | Dependency mgmt     | Dinesh | available             | pip + `requirements.txt` snapshot | ✅ Verified. `pyproject.toml` with explicit index routing committed. Reproduces environment via `uv sync` on fresh instance.                                                                                                          | None — verified                              |
 | Vast.ai RTX 5090            | Compute             | Dinesh | available on demand   | Lambda Labs / RunPod (same cu128) | Training only. CUDA 13.1 / PyTorch cu128 compatibility confirmed. Spin up per training session, destroy after.                                                                                                                        | Low — environment reproducible from lockfile |
-| Hetzner VPS                 | Deployment          | Dinesh | not provisioned (S12) | any CPU VPS ≥ 16GB RAM            | CPU-only inference. 16GB RAM assumed sufficient.                                                                                                                                                                                      | Low                                          |
+| Hetzner VPS                 | Deployment          | Dinesh | provisioned (hel1-dc2 8 GB)  | any CPU VPS ≥ 8GB RAM (≥16GB fallback per ADR-0006) | CPU-only inference. 8 GB shared with `claude-api`+`exhibita`; 6.9 GiB free at rest.                                                                                     | Low                                          |
 | W&B                         | Experiment tracking | Dinesh | available             | local CSV log + matplotlib        | Free tier sufficient for solo project. API key via env var.                                                                                                                                                                           | Low                                          |
 | Kaggle CLI 2.0.1            | Dataset access      | Dinesh | available             | manual download from Kaggle UI    | ✅ Verified installed. Credentials (`~/.kaggle/kaggle.json`) must be configured on each fresh Vast.ai instance before dataset download.                                                                                               | Low                                          |
 | D3.js (v7)                  | Frontend            | Dinesh | available (CDN)       | vendored copy in `/static`        | CDN import. No build step required.                                                                                                                                                                                                   | Low                                          |
@@ -664,7 +665,7 @@ Answers to the five scope-clarification break questions, cross-referenced to the
 | 2   | What could make this expensive?                  | Training sweeps exceeding the ~8-12h GPU budget (~$4-5); being forced to migrate from IT-AML Medium to Large; needing post-deploy quantization or a second Vast.ai run to recover from a failed training cycle.                                         | §10 Compute budget; §13 row 3; §14 Tradeoff 3                                 |
 | 3   | What could make this unsafe?                     | Misrepresenting a synthetic-data portfolio model as production-ready for real AML use; unauthenticated public API abused for scraping or resource exhaustion (rate limit still TBD).                                                                    | §5 Non-goal 4; §6 "Out of scope"; §9 Security; §18 Q on IP-level rate limit   |
 | 4   | What could make this much broader than expected? | Scope creep into any of the §5 non-goals — pattern-type detection, real-time streaming, auth, automated retraining, multi-bank / federated, mobile frontend, K8s orchestration, or frontend visual design. Each has a standing "not v1" ruling.         | §5 Non-Goals items 1-9                                                        |
-| 5   | What could force an architectural rewrite later? | CPU inference latency > 200ms forcing quantization or model downsize; Hetzner 16GB RAM insufficient forcing a smaller architecture; HGT failing to beat the GraphSAGE baseline forcing a shift to focal loss, deeper layers, or a different aggregator. | §11 Assumptions 4-5; §13 rows 2, 4; §16 "this is not working"                 |
+| 5   | What could force an architectural rewrite later? | CPU inference latency > 200ms forcing quantization or model downsize; Phase 2 idle RSS > 3 GB forcing a migration from the hel1-dc2 8 GB VPS to a ≥16 GB tier (ADR-0006 fallback); HGT failing to beat the GraphSAGE baseline forcing a shift to focal loss, deeper layers, or a different aggregator. | §11 Assumptions 4-5; §13 rows 2, 4; §16 "this is not working"; ADR-0006                 |
 
 ---
 

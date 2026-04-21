@@ -172,7 +172,7 @@ Mirrors PRD §11a. S-01..S-04 each have a host task whose acceptance includes st
 | S-00 | CUDA 13.1 + PyTorch 2.8.0+cu128 + PyG 2.7.0 compat  | DONE          | closed 2026-04-18 | —                |
 | S-01 | CPU p95 latency < 200 ms on 500-edge subgraph       | MUST RUN      | 2026-04-22        | T-028            |
 | S-02 | IT-AML Medium schema matches NeurIPS 2023 paper     | MUST RUN      | 2026-04-22        | T-022            |
-| S-03 | Hetzner 16 GB + Docker + Caddy viability            | MUST RUN      | 2026-05-05        | T-019            |
+| S-03 | Hetzner VPS + Docker + Caddy viability (hel1-dc2 8 GB reuse) | DONE | closed 2026-04-21 | T-019            |
 | S-04 | Caddy per-IP rate limit + UptimeRobot 2-min cadence | MUST RUN      | 2026-05-06        | T-020            |
 | R-01 | HGT beats IBM Multi-GNN baseline (F1 ≥ 0.72)        | ACCEPTED RISK | end of Phase 2    | T-046 (resolved) |
 | R-02 | HGT attention weights non-degenerate                | ACCEPTED RISK | end of Phase 2    | T-046 (resolved) |
@@ -862,29 +862,29 @@ Acceptance:
 ### T-019 — S-03 Hetzner provision + Docker smoke test [kind:spike]
 
 Phase: Pilot
-Links: S-03, PRD §11a, PRD §18 (Hetzner instance type), ADR-000X (new ADR if instance type ≠ CPX31)
+Links: S-03, PRD §11a, PRD §18 (Hetzner instance type), ADR-0006
 BlockedBy: T-011
 Blocks: T-021, T-067
 Estimate: 1d
-Status: pending
+Status: done
 
 What:
-Provision a 16 GB Hetzner instance, deploy the stub Dockerfile behind Caddy with TLS, measure cold-start / idle RAM / health p95 / TLS-issuance time. Target: 2026-05-05.
+Reused the existing hel1-dc2 8 GB VPS (helsinki-paradise) for the graphwash container instead of a dedicated CPX31. Deployed a FastAPI + Pydantic v2 stub in Docker behind Caddy with TLS on graphwash.dineshd.dev. Measured cold-start, idle RAM, health p95, and TLS-issuance time. Closed 2026-04-21.
 
 Approach / Files:
 
 - Method: verbatim from PRD §11a S-03
-- docs/ops/hetzner.md :: record chosen instance type, region, SSH fingerprint, Caddyfile
-- docs/adr/000X-hetzner-instance-choice.md :: appended only if instance type ≠ CPX31
+- docs/ops/hetzner.md :: instance metadata, Caddy site block, measurement evidence
+- docs/adr/0006-hetzner-instance-choice.md :: locks the hel1-dc2 8 GB reuse decision
 
 Acceptance:
-[ ] Cold-start < 30 s (evidence: `time docker run` log)
-[ ] Idle RAM < 2 GB (evidence: `docker stats`)
-[ ] Health endpoint p95 < 50 ms (evidence: `curl -w`)
-[ ] Caddy TLS issued by Let's Encrypt < 2 min (evidence: Caddy log)
-[ ] PRD §11a S-03 row moved to DONE
-[ ] Hetzner instance type recorded in `docs/ops/hetzner.md`
-[ ] ADR-000X appended if instance choice differs from CPX31 baseline
+[x] Cold-start < 30 s (evidence: `docs/ops/hetzner.md` cold-start block, 2.405 to 2.494 s across 5 iterations)
+[x] Idle RAM < 2 GB (evidence: `docs/ops/hetzner.md` idle-RAM block, 74.56 MiB steady-state)
+[x] Health endpoint p95 < 50 ms (evidence: `docs/ops/hetzner.md` health-p95 block, 49 ms via `ab -n 500 -c 10`)
+[x] Caddy TLS issued by Let's Encrypt < 2 min (evidence: `docs/ops/hetzner.md` TLS block, 4.66 s)
+[x] PRD §11a S-03 row moved to DONE
+[x] Hetzner instance type recorded in `docs/ops/hetzner.md`
+[x] ADR-0006 appended (instance choice differs from CPX31 baseline: hel1-dc2 8 GB reuse)
 [ ] Conventional commit landed on a PR into main
 
 ### T-020 — S-04 Caddy rate-limit + UptimeRobot [kind:spike]
@@ -2166,7 +2166,7 @@ Ship the deploy surface behind `/beta` on the Hetzner VPS, soak for ≥ 24h acro
 ### Entry gate
 
 - [ ] Phase 4 exit gate (T-066) passed
-- [ ] S-03 (T-019) DONE — Hetzner + Docker smoke verified
+- [x] S-03 (T-019) DONE: Hetzner + Docker smoke verified (2026-04-21)
 - [ ] S-04 (T-020) DONE — Caddy rate-limit + UptimeRobot verified
 
 ### Tasks
