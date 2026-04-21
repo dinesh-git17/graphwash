@@ -1,0 +1,34 @@
+name: Documentation issue
+description: A doc is wrong, missing, unclear, or out of sync with the code.
+title: "docs: "
+labels: ["kind:docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For PRD or task-list drift: reference the exact section or T-ID.
+        For README / dev-guide bugs: paste the misleading passage verbatim.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong
+      description: Quote the passage or describe the gap. If the doc contradicts the code, link both.
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Proposed fix
+      description: Concrete rewrite, diff, or section outline. "Clarify the wording" is not a proposed fix.
+    validations:
+      required: true
+  - type: textarea
+    id: pages
+    attributes:
+      label: Affected pages
+      description: One per line, repo-relative paths (e.g., `docs/graphwash-prd.md §9a`, `docs/dev-guide.md#testing`).
+      placeholder: |
+        docs/graphwash-prd.md §9a
+        docs/dev-guide.md#logging
+    validations:
+      required: true

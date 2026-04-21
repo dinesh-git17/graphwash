@@ -1,0 +1,48 @@
+name: Bug report
+description: Something in graphwash behaves incorrectly.
+title: "bug: "
+labels: ["kind:impl"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Fill every field — a bug without a
+        reproduction is a hypothesis, not a bug.
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Exact steps, commands, or API calls that trigger the bug. Copy-paste real output, not a summary.
+      placeholder: |
+        1. Run `uv run uvicorn src.graphwash.api.main:app`
+        2. POST /api/v1/score with payload X
+        3. Observe 500 response
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should have happened, and why you believe that (PRD section, docstring, prior commit).
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What happened instead. Paste stack traces, log lines, or response bodies in full.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, commit SHA, and how you ran the code (local / Docker / Vast.ai).
+      placeholder: |
+        OS: macOS 15.2 (Apple Silicon)
+        Python: 3.12.7 via uv
+        Commit: 70d2a1a
+        Runtime: local uvicorn --reload
+    validations:
+      required: true
