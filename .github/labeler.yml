@@ -1,0 +1,25 @@
+"kind:impl":
+  - head-branch:
+      - "^feat/"
+      - "^fix/"
+      - "^refactor/"
+
+"kind:test":
+  - head-branch:
+      - "^test/"
+
+"kind:infra":
+  - head-branch:
+      - "^infra/"
+
+"kind:docs":
+  - head-branch:
+      - "^docs/"
+
+"kind:spike":
+  - head-branch:
+      - "^spike/"
+
+"kind:ops":
+  - head-branch:
+      - "^ops/"
