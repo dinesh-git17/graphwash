@@ -21,6 +21,7 @@ This guide covers project-specific additions on top of those baselines.
 | Docker | 24+ | Local container smoke test; Hetzner deploy parity |
 | Git | any | Source control |
 | Kaggle CLI | 2.0.1+ | Dataset download (only needed on training hosts) |
+| `yq` | 4+ | Label sync script (`scripts/sync_labels.sh`) — mikefarah build (`brew install yq`) |
 
 Recommended but optional:
 
@@ -91,7 +92,55 @@ Coverage reports write to `htmlcov/` — open `htmlcov/index.html` to explore.
 
 ---
 
-## 5. Training the model
+## 5. Labelling
+
+Issues and PRs share one label taxonomy defined in `.github/labels.yml`. Four
+groups, each with a distinct hex-colour family:
+
+| Group     | Automation                                  | Notes                                                        |
+| --------- | ------------------------------------------- | ------------------------------------------------------------ |
+| `phase:*` | manual                                      | 8 labels (`pilot, 0, 1, 2, 3, 4, 5a, 5b`)                    |
+| `req:*`   | manual                                      | One per v1 REQ-ID; automation deferred to T-012.1            |
+| `kind:*`  | auto (6 of 8) via `.github/labeler.yml`     | `decision` and `gate` are manual content categories          |
+| `size:*`  | auto via `CodelyTV/pr-size-labeler@v1`      | xs<=10, s<=100, m<=500, l<=1000 lines; xl clamped to `size:l` |
+
+### Syncing labels to the repo
+
+Run once after merging a change to `.github/labels.yml`:
+
+```bash
+./scripts/sync_labels.sh
+```
+
+The script is idempotent: it creates missing labels and edits existing ones in
+place. Requires `gh` and `yq` (mikefarah v4; see §1 Prerequisites).
+
+### Auto-labelling behaviour
+
+`.github/workflows/pr-label.yml` runs on `pull_request_target` for every PR:
+
+- Job `kind` applies `kind:*` from the head-branch prefix:
+  `feat/|fix/|refactor/ → kind:impl`, `test/ → kind:test`,
+  `infra/ → kind:infra`, `docs/ → kind:docs`, `spike/ → kind:spike`,
+  `ops/ → kind:ops`. `chore/` is intentionally unmapped.
+- Job `size` applies exactly one `size:*` label from lines changed.
+
+### Manual-only dimensions
+
+- `phase:*` — set by the author based on PRD §17 phase.
+- `req:*` — set by the author; multiple allowed when a PR spans REQ-IDs.
+- `kind:decision`, `kind:gate` — applied by Dinesh on ADR or phase-gate PRs.
+
+### If CodelyTV stops working
+
+`CodelyTV/pr-size-labeler@v1` has not shipped a release in over a year as of
+2026-04. If it breaks post Node-20 deprecation, swap the `size` job to
+`pascalgn/size-label-action@v0.5` and map its size buckets onto the same
+`size:xs|s|m|l` label names.
+
+---
+
+## 6. Training the model
 
 Training runs on Vast.ai, not locally. See `docs/graphwash-setup-report.md` for instance bootstrap steps.
 
@@ -112,7 +161,7 @@ git add -A && git commit -m "chore(training): run <run-id>" && git push
 
 ---
 
-## 6. Deployment (Hetzner)
+## 7. Deployment (Hetzner)
 
 ```bash
 # Build
@@ -128,7 +177,7 @@ Full deploy + rollback procedure: PRD §17.
 
 ---
 
-## 7. Project conventions
+## 8. Project conventions
 
 Project-specific additions on top of workspace `dev/CLAUDE.md` and the `python-writing-standards` skill.
 
@@ -285,7 +334,7 @@ hook or the code at root. Hook regressions are tracked as a follow-up
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 | ------- | ------------ | --- |
