@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Final
 
 import numpy as np
 import pandas as pd
+import torch
 
 from graphwash.data import schema
 from graphwash.data.node_types import assign_account_type
@@ -253,6 +254,105 @@ def _encode_relative_timestamps(
     dataset_epoch_s = (min_unix // 86400) * 86400 - RELATIVE_TIMESTAMP_MARGIN_S
     rel_ts = (unix_s - dataset_epoch_s).astype(np.int64)
     return rel_ts, dataset_epoch_s
+
+
+def _compute_account_features(
+    df: pd.DataFrame,
+    bundle: NodeIndexBundle,
+) -> dict[str, Tensor]:
+    """Seven-feature per-type account aggregates.
+
+    Columns (in order):
+        0 out_count
+        1 in_count
+        2 out_amount_sum
+        3 in_amount_sum
+        4 unique_counterparty_count (undirected)
+        5 cross_currency_out_count
+        6 cross_currency_in_count
+    """
+    from scipy.sparse import csr_matrix  # type: ignore[import-untyped]  # noqa: PLC0415
+
+    n = len(bundle.composite_ids)
+    cross_currency_mask = (
+        df["receiving_currency"].astype(str) != df["payment_currency"].astype(str)
+    ).to_numpy()
+
+    out_count = np.bincount(
+        df["from_composite_idx"].to_numpy(),
+        minlength=n,
+    ).astype(np.float32)
+    in_count = np.bincount(
+        df["to_composite_idx"].to_numpy(),
+        minlength=n,
+    ).astype(np.float32)
+
+    out_amount_sum = (
+        df.groupby("from_composite_idx")["amount_paid"]
+        .sum()
+        .reindex(range(n), fill_value=0.0)
+        .to_numpy()
+        .astype(np.float32)
+    )
+    in_amount_sum = (
+        df.groupby("to_composite_idx")["amount_paid"]
+        .sum()
+        .reindex(range(n), fill_value=0.0)
+        .to_numpy()
+        .astype(np.float32)
+    )
+
+    cross_out = np.bincount(
+        df["from_composite_idx"].to_numpy(),
+        weights=cross_currency_mask.astype(np.int64),
+        minlength=n,
+    ).astype(np.float32)
+    cross_in = np.bincount(
+        df["to_composite_idx"].to_numpy(),
+        weights=cross_currency_mask.astype(np.int64),
+        minlength=n,
+    ).astype(np.float32)
+
+    e = len(df)
+    rows = np.concatenate(
+        [
+            df["from_composite_idx"].to_numpy(),
+            df["to_composite_idx"].to_numpy(),
+        ],
+    )
+    cols = np.concatenate(
+        [
+            df["to_composite_idx"].to_numpy(),
+            df["from_composite_idx"].to_numpy(),
+        ],
+    )
+    adj = csr_matrix(
+        (np.ones(2 * e, dtype=np.int8), (rows, cols)),
+        shape=(n, n),
+    )
+    adj.sum_duplicates()
+    unique_counterparty_count = np.diff(adj.indptr).astype(np.float32)
+
+    features_per_composite = np.stack(
+        [
+            out_count,
+            in_count,
+            out_amount_sum,
+            in_amount_sum,
+            unique_counterparty_count,
+            cross_out,
+            cross_in,
+        ],
+        axis=1,
+    )
+
+    individual_mask = bundle.account_type_per_composite == INDIVIDUAL_CODE
+    business_mask = bundle.account_type_per_composite == BUSINESS_CODE
+
+    return {
+        "individual": torch.from_numpy(features_per_composite[individual_mask]),
+        "business": torch.from_numpy(features_per_composite[business_mask]),
+    }
 
 
 def build_hetero_data(csv_dir: Path) -> HeteroData:
