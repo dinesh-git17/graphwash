@@ -2472,6 +2472,36 @@ Acceptance:
 
 ---
 
+## Housekeeping — out-of-band maintenance
+
+Tasks that do not map to a phase gate: documentation drift, tooling upkeep,
+governance cleanup. Each entry carries a T-NNN for traceability but is not
+part of the v1 phase ladder and does not block any phase gate.
+
+### T-078 — ADR README drift cleanup [kind:docs]
+
+Phase: housekeeping
+Links: —
+BlockedBy: —
+Blocks: —
+Estimate: 0.1d
+Status: done
+
+What:
+Fix pre-existing drift in `docs/adr/README.md`: replace em dashes in the Format and Lifecycle bullets with colons per workspace governance, rewrap the preamble paragraph and bullet overflow to ≤ 80 chars, and add the missing ADR-0006 index row. Drift surfaced by the technical-writer validator during T-022. Closed 2026-04-22.
+
+Approach / Files:
+
+- docs/adr/README.md :: prose punctuation + line wrapping + one new index row between ADR-0005 and ADR-0007
+
+Acceptance:
+[x] Zero em dashes in `docs/adr/README.md` prose (index-table rows exempt)
+[x] No prose line exceeds 80 chars (index-table rows exempt)
+[x] ADR-0006 present in the index table between 0005 and 0007
+[x] Conventional commit landed on a PR into main
+
+---
+
 ## Phase 6 — v1.1 (post-v1, out of active scope)
 
 **Budget:** TBD (post-launch planning) | **Tasks:** — (no T-NNN allocated)
