@@ -1023,10 +1023,21 @@ Links: REQ-001, ADR-0008
 BlockedBy: T-023
 Blocks: T-025, T-026, T-027, T-028
 Estimate: 1d
-Status: pending
+Status: done
 
 What:
-Build a PyG `HeteroData` object keyed by composite `(bank, account)` node identity (per ADR-0008) with three node types (`individual`, `business`, `bank`) and two edge types: `wire_transfer` (account-to-account, carrying `amount_paid` float32, relative timestamp int64, cross-currency int8 flag) and `at_bank` (account-to-bank membership, no per-edge features). Timestamps encoded as seconds relative to `floor(min(timestamp), day) - 10s` per IBM `format_kaggle_files.py` reference.
+Build a PyG `HeteroData` object keyed by composite `(bank, account)`
+node identity (per ADR-0008) with three node types (`individual`,
+`business`, `bank`) and two edge types: `wire_transfer`
+(account-to-account, carrying `amount_paid` float32, relative
+timestamp int64, cross-currency int8 flag) and `at_bank`
+(account-to-bank membership, no per-edge features). Timestamps
+encoded as int64 seconds relative to `floor(min(timestamp), day) −
+RELATIVE_TIMESTAMP_MARGIN_S` per IBM `format_kaggle_files.py`
+reference. `RELATIVE_TIMESTAMP_MARGIN_S = 10` is a module-level
+constant in `loader.py`; the dataset epoch is computed per load and
+attached to the returned `HeteroData` as
+`graphwash_timestamp_epoch_s`.
 
 Approach / Files:
 
@@ -1035,13 +1046,21 @@ Approach / Files:
 - tests/data/test_loader.py :: 1k-row synthetic fixture CSV; asserts composite-node deduplication (distinct `(bank, account)` pairs land in distinct nodes), both edge-type triplet coverage, every account carries at least one `at_bank` edge to its declared bank, edge-feature dtypes on `wire_transfer`, and an `HGTConv` smoke test producing embeddings for all three node types
 
 Acceptance:
-[ ] `build_hetero_data()` returns a PyG `HeteroData` keyed by composite `(bank, account)` identity with three node types and two edge types (`wire_transfer`, `at_bank`) per REQ-001 + ADR-0008
-[ ] `wire_transfer` edges carry `amount_paid` (float32), relative timestamp (int64 seconds per ADR-0008), cross-currency flag (int8)
-[ ] Every account node has at least one `at_bank` edge to its declared bank
-[ ] `HGTConv` smoke test on the built graph produces embeddings for all three node types (no structurally dead type)
-[ ] `tests/data/test_loader.py` green on 1k-row fixture
-[ ] ruff + mypy --strict clean; pytest green
-[ ] Conventional commit landed on a PR into main
+[x] `build_hetero_data()` returns a PyG `HeteroData` keyed by composite `(bank, account)` identity with three node types and two edge types (`wire_transfer`, `at_bank`) per REQ-001 + ADR-0008
+[x] `wire_transfer` edges carry `amount_paid` (float32), relative timestamp (int64 seconds per ADR-0008), cross-currency flag (int8)
+[x] Every account node has at least one `at_bank` edge to its declared bank
+[x] `HGTConv` smoke test on the built graph produces embeddings for all three node types (no structurally dead type)
+[x] Every canonical `wire_transfer` edge store carries binary
+    supervision labels in `.y`, aligned with edge order
+[x] Every node type carries a `float32` feature tensor `x` of shape
+    `[N_type, 7]`, derived in a single pass over the raw CSV
+    (account feature schema per `loader._compute_account_features`;
+    bank feature schema per `loader._compute_bank_features`)
+[x] `RELATIVE_TIMESTAMP_MARGIN_S` module-level constant;
+    `graphwash_timestamp_epoch_s` attached to returned `HeteroData`
+[x] `tests/data/test_loader.py` green on 1k-row fixture
+[x] ruff + mypy --strict clean; pytest green
+[x] Conventional commit landed on a PR into main
 
 ### T-025 — Stratified train/val/test splits [kind:impl]
 

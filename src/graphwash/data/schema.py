@@ -79,6 +79,17 @@ Timestamp format
 ----------------
 ``%Y/%m/%d %H:%M`` (observed in the first row; consistent with IBM's
 ``format_kaggle_files.py`` strptime usage).
+
+Dataset epoch (HI-Medium, captured 2026-04-22)
+----------------------------------------------
+``HI_MEDIUM_EPOCH_S = 1_661_990_390`` Unix seconds — the IBM-convention
+dataset epoch used by ``_encode_relative_timestamps`` to shift Unix
+seconds into a compact relative timeline. Derived from the earliest
+observed timestamp (``2022/09/01 00:00`` UTC = ``1_661_990_400`` s) as
+``floor(min_unix / 86400) * 86400 - RELATIVE_TIMESTAMP_MARGIN_S`` with
+``RELATIVE_TIMESTAMP_MARGIN_S = 10``. Captured on the full 31.9M-row
+CSV on a Vast.ai instance; see ``tests/data/test_schema_epoch.py`` for
+the derivation lock.
 """
 
 from collections.abc import Mapping
@@ -146,6 +157,8 @@ TOTAL_TRANSACTIONS: Final[int] = 31_898_238
 LAUNDERING_TRANSACTIONS: Final[int] = 35_230
 LAUNDERING_RATE_1_PER_N: Final[int] = 905
 ILLICIT_FRACTION: Final[float] = 0.0011044497191349566
+
+HI_MEDIUM_EPOCH_S: Final[int] = 1_661_990_390
 
 PAPER_HI_MEDIUM_STATS: Final[Mapping[str, int]] = {
     "days_spanned": 16,
