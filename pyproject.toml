@@ -118,6 +118,7 @@ explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 asyncio_mode = "auto"
 addopts = "-ra -q --strict-markers --cov=src --cov-branch --cov-report=term-missing --cov-report=xml"
 markers = [
