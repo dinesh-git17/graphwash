@@ -32,14 +32,64 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
+    from graphwash.data.node_types import AccountNodeType
+
+from graphwash.data.node_types import assign_account_node_type
 from graphwash.data.schema import (
     RAW_COLUMN_DTYPES,
     RAW_FILENAME,
     RENAME_MAP,
     TIMESTAMP_FORMAT,
 )
+
+_ACCOUNT_NODE_TYPES: tuple[AccountNodeType, ...] = ("individual", "business")
+
+
+def _build_node_index_tables(
+    frame: pd.DataFrame,
+) -> Mapping[str, dict[str, int]]:
+    """Build ``{original_id: local_idx}`` maps for each node type.
+
+    Account ids (strings) are classified by ``assign_account_node_type``.
+    Bank ids (ints, stringified for dict keys) populate the ``bank``
+    table. Local indices are contiguous zero-based per type, assigned
+    in first-seen order over ``(from, to)`` scanning.
+
+    Args:
+        frame: DataFrame returned by ``_load_raw_csv``.
+
+    Returns:
+        Mapping with keys ``"individual"``, ``"business"``, and ``"bank"``,
+        each holding a ``{original_id: local_idx}`` dict.
+    """
+    individual: dict[str, int] = {}
+    business: dict[str, int] = {}
+    bank: dict[str, int] = {}
+
+    def _register_account(account_id: str) -> None:
+        node_type = assign_account_node_type(account_id)
+        table = individual if node_type == "individual" else business
+        if account_id not in table:
+            table[account_id] = len(table)
+
+    def _register_bank(bank_id: int) -> None:
+        key = str(bank_id)
+        if key not in bank:
+            bank[key] = len(bank)
+
+    for account_id in frame["from_account"]:
+        _register_account(account_id)
+    for account_id in frame["to_account"]:
+        _register_account(account_id)
+    for bank_id in frame["from_bank"]:
+        _register_bank(int(bank_id))
+    for bank_id in frame["to_bank"]:
+        _register_bank(int(bank_id))
+
+    return {"individual": individual, "business": business, "bank": bank}
 
 
 def _load_raw_csv(csv_dir: Path) -> pd.DataFrame:
