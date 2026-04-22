@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Final
 import numpy as np
 import pandas as pd
 import torch
+from torch_geometric.data import HeteroData
 
 from graphwash.data import schema
 from graphwash.data.node_types import assign_account_type
@@ -22,7 +23,6 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
     from torch import Tensor
-    from torch_geometric.data import HeteroData
 
 RELATIVE_TIMESTAMP_MARGIN_S: Final[int] = 10
 
@@ -517,6 +517,65 @@ def _build_at_bank_edges(
     return edges
 
 
+def _assemble_hetero_data(  # noqa: PLR0913
+    bundle: NodeIndexBundle,
+    account_features: dict[str, Tensor],
+    bank_features: Tensor,
+    wire_edges: dict[tuple[str, str, str], WireTransferEdgeBundle],
+    at_bank_edges: dict[tuple[str, str, str], AtBankEdgeBundle],
+    dataset_epoch_s: int,
+) -> HeteroData:
+    """Assemble the final HeteroData object.
+
+    Args:
+        bundle: Canonical node index table for this dataset.
+        account_features: Per-type feature tensors keyed by
+            ``"individual"`` and ``"business"``.
+        bank_features: Feature tensor for bank nodes.
+        wire_edges: Per-triplet wire_transfer edge bundles.
+        at_bank_edges: Per-account-type at_bank edge bundles.
+        dataset_epoch_s: IBM-convention dataset epoch in Unix seconds.
+
+    Returns:
+        A fully populated ``HeteroData`` carrying node features,
+        edge stores, and the ``graphwash_*`` metadata attributes.
+    """
+    data = HeteroData()
+
+    data["individual"].x = account_features["individual"]
+    data["business"].x = account_features["business"]
+    data["bank"].x = bank_features
+
+    for triplet, eb in wire_edges.items():
+        store = data[triplet]
+        store.edge_index = eb.edge_index
+        store.amount_paid = eb.amount_paid
+        store.timestamp = eb.timestamp
+        store.cross_currency = eb.cross_currency
+        store.y = eb.y
+
+    for triplet, ab_eb in at_bank_edges.items():
+        data[triplet].edge_index = ab_eb.edge_index
+
+    data.graphwash_timestamp_epoch_s = int(dataset_epoch_s)
+    data.graphwash_bank_ids = bundle.bank_ordered.copy()
+
+    individual_globals = np.where(
+        bundle.account_type_per_composite == INDIVIDUAL_CODE,
+    )[0]
+    business_globals = np.where(
+        bundle.account_type_per_composite == BUSINESS_CODE,
+    )[0]
+    data.graphwash_individual_composite_ids = tuple(
+        bundle.composite_ids[i] for i in individual_globals
+    )
+    data.graphwash_business_composite_ids = tuple(
+        bundle.composite_ids[i] for i in business_globals
+    )
+
+    return data
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
@@ -529,5 +588,31 @@ def build_hetero_data(csv_dir: Path) -> HeteroData:
         (``wire_transfer``, ``at_bank``), and the namespaced
         metadata attributes documented in the spec.
     """
-    msg = "implemented in later tasks"
-    raise NotImplementedError(msg)
+    csv_path = csv_dir / schema.RAW_FILENAME
+    df = _load_raw_csv(csv_path)
+    original_row_count = len(df)
+    df = _drop_self_loops(df)
+    self_loop_count = original_row_count - len(df)
+
+    bundle, df = _build_account_node_index(df)
+    bundle = _build_bank_index(df, bundle)
+    rel_ts, dataset_epoch_s = _encode_relative_timestamps(df)
+
+    account_features = _compute_account_features(df, bundle)
+    bank_features = _compute_bank_features(df, bundle)
+    wire_edges = _build_wire_transfer_edges(df, bundle, rel_ts)
+    at_bank_edges = _build_at_bank_edges(bundle)
+
+    data = _assemble_hetero_data(
+        bundle=bundle,
+        account_features=account_features,
+        bank_features=bank_features,
+        wire_edges=wire_edges,
+        at_bank_edges=at_bank_edges,
+        dataset_epoch_s=dataset_epoch_s,
+    )
+
+    total_wire_edges = sum(int(eb.edge_index.shape[1]) for eb in wire_edges.values())
+    assert total_wire_edges == original_row_count - self_loop_count  # noqa: S101
+
+    return data
