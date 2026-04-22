@@ -483,6 +483,40 @@ def _build_wire_transfer_edges(
     return edges
 
 
+def _build_at_bank_edges(
+    bundle: NodeIndexBundle,
+) -> dict[tuple[str, str, str], AtBankEdgeBundle]:
+    """Build at_bank membership edges for each account type.
+
+    Each account has exactly one at_bank edge pointing to its
+    declared bank. No edge attributes.
+    """
+    type_names = {INDIVIDUAL_CODE: "individual", BUSINESS_CODE: "business"}
+    local_by_type = {
+        INDIVIDUAL_CODE: bundle.individual_local_idx,
+        BUSINESS_CODE: bundle.business_local_idx,
+    }
+
+    edges: dict[tuple[str, str, str], AtBankEdgeBundle] = {}
+    for code in (INDIVIDUAL_CODE, BUSINESS_CODE):
+        composite_mask = bundle.account_type_per_composite == code
+        if not composite_mask.any():
+            continue
+        src_local = local_by_type[code][composite_mask]
+        dst_local = np.searchsorted(
+            bundle.bank_ordered,
+            bundle.bank_id_per_composite[composite_mask],
+        ).astype(np.int64)
+        edge_index = torch.from_numpy(
+            np.stack([src_local, dst_local], axis=0).astype(np.int64),
+        )
+        edges[(type_names[code], "at_bank", "bank")] = AtBankEdgeBundle(
+            edge_index=edge_index,
+        )
+
+    return edges
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
