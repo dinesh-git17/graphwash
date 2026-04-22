@@ -355,6 +355,72 @@ def _compute_account_features(
     }
 
 
+def _compute_bank_features(
+    df: pd.DataFrame,
+    bundle: NodeIndexBundle,
+) -> Tensor:
+    """Seven-feature bank aggregates.
+
+    Columns (in order):
+        0 member_account_count
+        1 outbound_transfer_count
+        2 inbound_transfer_count
+        3 outbound_amount_sum
+        4 inbound_amount_sum
+        5 internal_transfer_count
+        6 external_transfer_count
+    """
+    n_bank = len(bundle.bank_ordered)
+
+    from_bank_arr = df["from_bank"].to_numpy()
+    to_bank_arr = df["to_bank"].to_numpy()
+    amount = df["amount_paid"].to_numpy().astype(np.float64)
+
+    from_local = np.searchsorted(bundle.bank_ordered, from_bank_arr)
+    to_local = np.searchsorted(bundle.bank_ordered, to_bank_arr)
+
+    member_count = np.zeros(n_bank, dtype=np.float32)
+    member_locals = np.searchsorted(
+        bundle.bank_ordered,
+        bundle.bank_id_per_composite,
+    )
+    np.add.at(member_count, member_locals, 1.0)
+
+    out_count = np.zeros(n_bank, dtype=np.float32)
+    in_count = np.zeros(n_bank, dtype=np.float32)
+    out_amount = np.zeros(n_bank, dtype=np.float64)
+    in_amount = np.zeros(n_bank, dtype=np.float64)
+    internal_count = np.zeros(n_bank, dtype=np.float32)
+    external_count = np.zeros(n_bank, dtype=np.float32)
+
+    np.add.at(out_count, from_local, 1.0)
+    np.add.at(in_count, to_local, 1.0)
+    np.add.at(out_amount, from_local, amount)
+    np.add.at(in_amount, to_local, amount)
+
+    same_bank_mask = from_bank_arr == to_bank_arr
+    np.add.at(internal_count, from_local[same_bank_mask], 1.0)
+
+    diff_mask = ~same_bank_mask
+    np.add.at(external_count, from_local[diff_mask], 1.0)
+    np.add.at(external_count, to_local[diff_mask], 1.0)
+
+    features = np.stack(
+        [
+            member_count,
+            out_count,
+            in_count,
+            out_amount.astype(np.float32),
+            in_amount.astype(np.float32),
+            internal_count,
+            external_count,
+        ],
+        axis=1,
+    ).astype(np.float32)
+
+    return torch.from_numpy(features)
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
