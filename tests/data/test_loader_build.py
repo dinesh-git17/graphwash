@@ -116,7 +116,7 @@ def test_build_timestamp_epoch_contract(fixture_csv_dir: Path) -> None:
         raw["from_account"] == raw["to_account"]
     )
     raw = raw.loc[~self_loop_mask]
-    min_unix = int(raw["timestamp"].astype("int64").min() // 1_000_000_000)
+    min_unix = int(raw["timestamp"].astype("datetime64[s]").astype("int64").min())
     expected_epoch = (min_unix // 86400) * 86400 - RELATIVE_TIMESTAMP_MARGIN_S
     assert data.graphwash_timestamp_epoch_s == expected_epoch
 

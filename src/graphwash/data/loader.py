@@ -158,8 +158,22 @@ def _build_account_node_index(
     with two new ``int64`` columns ``from_composite_idx`` and
     ``to_composite_idx`` for downstream edge construction.
     """
-    from_composite = df["from_bank"].astype(str) + "|" + df["from_account"].astype(str)
-    to_composite = df["to_bank"].astype(str) + "|" + df["to_account"].astype(str)
+    from_composite = (
+        df["from_bank"]
+        .astype("string")
+        .str.cat(
+            df["from_account"].astype("string"),
+            sep="|",
+        )
+    )
+    to_composite = (
+        df["to_bank"]
+        .astype("string")
+        .str.cat(
+            df["to_account"].astype("string"),
+            sep="|",
+        )
+    )
 
     union = pd.concat([from_composite, to_composite], ignore_index=True)
     codes, categories = pd.factorize(union, sort=False)
@@ -243,7 +257,7 @@ def _encode_relative_timestamps(
         ValueError: computed epoch is negative or non-finite
             (indicates an all-NaT timestamp column).
     """
-    unix_s = df["timestamp"].astype("int64").to_numpy() // 1_000_000_000
+    unix_s = df["timestamp"].astype("datetime64[s]").astype("int64").to_numpy()
     min_unix = int(unix_s.min())
     if min_unix < 0:
         msg = (

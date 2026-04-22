@@ -28,7 +28,7 @@ def test_encode_relative_timestamps_epoch_is_day_floor_minus_margin(
 
     _, epoch_s = _encode_relative_timestamps(df)
 
-    unix_s = df["timestamp"].astype("int64").to_numpy() // 1_000_000_000
+    unix_s = df["timestamp"].astype("datetime64[s]").astype("int64").to_numpy()
     expected_epoch = (int(unix_s.min()) // 86400) * 86400 - RELATIVE_TIMESTAMP_MARGIN_S
     assert epoch_s == expected_epoch
 
@@ -64,7 +64,7 @@ def test_encode_relative_timestamps_preserves_ordering(
 
     rel_ts, _ = _encode_relative_timestamps(df)
 
-    unix_s = df["timestamp"].astype("int64").to_numpy() // 1_000_000_000
+    unix_s = df["timestamp"].astype("datetime64[s]").astype("int64").to_numpy()
     assert np.all(np.argsort(rel_ts) == np.argsort(unix_s))
 
 
@@ -79,3 +79,18 @@ def test_encode_relative_timestamps_rejects_nat_column() -> None:
     )
     with pytest.raises(ValueError, match="epoch"):
         _encode_relative_timestamps(df)
+
+
+@pytest.mark.parametrize("resolution", ["ns", "us", "ms", "s"])
+def test_encode_relative_timestamps_unit_agnostic(resolution: str) -> None:
+    """2022-09-01 00:00 UTC must yield epoch 1_661_990_390 at any resolution."""
+    ts = pd.to_datetime(
+        pd.Series(["2022/09/01 00:00", "2022/09/01 00:05"]),
+        format="%Y/%m/%d %H:%M",
+    ).astype(np.dtype(f"datetime64[{resolution}]"))
+    df = pd.DataFrame({"timestamp": ts})
+
+    rel_ts, epoch_s = _encode_relative_timestamps(df)
+
+    assert epoch_s == 1_661_990_390
+    assert rel_ts.tolist() == [10, 310]
