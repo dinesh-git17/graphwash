@@ -228,6 +228,33 @@ def _build_bank_index(
     )
 
 
+def _encode_relative_timestamps(
+    df: pd.DataFrame,
+) -> tuple[NDArray[np.int64], int]:
+    """Encode timestamps as IBM-convention relative seconds.
+
+    Returns ``(rel_ts, dataset_epoch_s)`` where
+    ``rel_ts = unix_s - dataset_epoch_s`` and
+    ``dataset_epoch_s = floor(unix_s.min() / 86400) * 86400
+                       - RELATIVE_TIMESTAMP_MARGIN_S``.
+
+    Raises:
+        ValueError: computed epoch is negative or non-finite
+            (indicates an all-NaT timestamp column).
+    """
+    unix_s = df["timestamp"].astype("int64").to_numpy() // 1_000_000_000
+    min_unix = int(unix_s.min())
+    if min_unix < 0:
+        msg = (
+            f"negative or non-finite epoch from unix_s.min()={min_unix}; "
+            "check timestamp parsing for NaT rows"
+        )
+        raise ValueError(msg)
+    dataset_epoch_s = (min_unix // 86400) * 86400 - RELATIVE_TIMESTAMP_MARGIN_S
+    rel_ts = (unix_s - dataset_epoch_s).astype(np.int64)
+    return rel_ts, dataset_epoch_s
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
