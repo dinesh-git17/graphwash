@@ -1023,7 +1023,7 @@ Links: REQ-001, ADR-0008
 BlockedBy: T-023
 Blocks: T-025, T-026, T-027, T-028
 Estimate: 1d
-Status: pending
+Status: in_progress
 
 What:
 Build a PyG `HeteroData` object keyed by composite `(bank, account)` node identity (per ADR-0008) with three node types (`individual`, `business`, `bank`) and two edge types: `wire_transfer` (account-to-account, carrying `amount_paid` float32, relative timestamp int64, cross-currency int8 flag) and `at_bank` (account-to-bank membership, no per-edge features). Timestamps encoded as seconds relative to `floor(min(timestamp), day) - 10s` per IBM `format_kaggle_files.py` reference.
