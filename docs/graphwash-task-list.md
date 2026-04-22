@@ -183,16 +183,16 @@ Mirrors PRD §11a. S-01..S-04 each have a host task whose acceptance includes st
 
 Source: sum of `Estimate:` fields per phase, with absorption applied per spec §4.3 Parallelism rules.
 
-| Phase    | Raw estimate | kind:test tasks | kind:docs tasks | Notes                                  |
-| -------- | ------------ | --------------- | --------------- | -------------------------------------- |
-| Pilot    | 7.75d        | 0               | 0.75d           | T-015 (PR status aggregator) added +1d |
-| Phase 0  | 2.75d        | 0.25d           | 0               |                                        |
-| Phase 1  | 3.25d        | 0.25d           | 0.5d            |                                        |
-| Phase 2  | 5.25d        | 0.25d           | 0.75d           | T-040 reduced 1d → 0.5d (Task 14 trim) |
-| Phase 3  | 3.75d        | 0.5d            | 0               |                                        |
-| Phase 4  | 3.75d        | 0.25d           | 0.25d           | T-064 deferred (Task 14 trim)          |
-| Phase 5a | 2.25d        | 0               | 0               |                                        |
-| Phase 5b | 1.25d        | 0               | 0.25d           |                                        |
+| Phase    | Raw estimate | kind:test tasks | kind:docs tasks | Actual (cal days)           | Notes                                  |
+| -------- | ------------ | --------------- | --------------- | --------------------------- | -------------------------------------- |
+| Pilot    | 7.75d        | 0               | 0.75d           | 3d (2026-04-19..2026-04-21) | T-015 (PR status aggregator) added +1d |
+| Phase 0  | 2.75d        | 0.25d           | 0               | —                           |                                        |
+| Phase 1  | 3.25d        | 0.25d           | 0.5d            | —                           |                                        |
+| Phase 2  | 5.25d        | 0.25d           | 0.75d           | —                           | T-040 reduced 1d → 0.5d (Task 14 trim) |
+| Phase 3  | 3.75d        | 0.5d            | 0               | —                           |                                        |
+| Phase 4  | 3.75d        | 0.25d           | 0.25d           | —                           | T-064 deferred (Task 14 trim)          |
+| Phase 5a | 2.25d        | 0               | 0               | —                           |                                        |
+| Phase 5b | 1.25d        | 0               | 0.25d           | —                           |                                        |
 
 | Aggregate                                            | Value                                                 |
 | ---------------------------------------------------- | ----------------------------------------------------- |
@@ -721,7 +721,7 @@ Links: —
 BlockedBy: T-009
 Blocks: —
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Automated weekly bumps for `pip` and `github-actions` ecosystems.
@@ -731,32 +731,32 @@ Approach / Files:
 - .github/dependabot.yml :: schedule: weekly; ecosystems: pip (directory /), github-actions (directory /)
 
 Acceptance:
-[ ] `.github/dependabot.yml` committed
-[ ] Dependabot status page shows both ecosystems enabled
-[ ] Conventional commit landed on a PR into main
+[x] `.github/dependabot.yml` committed
+[x] Dependabot status page shows both ecosystems enabled (evidence: SBOM endpoint lists `pkg:pypi` and `pkg:githubactions` packages; dependabot[bot] PR #18 merged 2026-04-20)
+[x] Conventional commit landed on a PR into main (PRs #13, #20)
 
-### T-011 — Docker CI stub (build-only) [kind:infra]
+### T-011 — Docker CI stub (hadolint) [kind:infra]
 
 Phase: Pilot
 Links: —
 BlockedBy: T-009
 Blocks: T-019
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
-Placeholder Dockerfile + CI workflow that builds the image on every PR (no push). Catches Dockerfile regressions before Phase 5.
+Placeholder Dockerfile + CI workflow that statically lints the Dockerfile on every PR touching Docker paths. Catches Dockerfile regressions before Phase 5. Originally specified as a full `docker build`, pivoted to hadolint in PR #24 after the cold-build cost (~16 min) failed to earn its keep on a stub image; full build returns in Phase 5 when the runtime image has real contents.
 
 Approach / Files:
 
 - Dockerfile :: python:3.12-slim base, `uv sync`, COPY src/, placeholder CMD echoing "v0 stub"
-- .github/workflows/docker.yml :: docker build only, no push
+- .github/workflows/docker.yml :: `hadolint/hadolint-action@v3.1.0` on `pull_request` paths `[Dockerfile, .dockerignore, .github/workflows/docker.yml]`, `failure-threshold: error`, no push
 
 Acceptance:
-[ ] `docker build .` succeeds locally
-[ ] CI workflow builds image on pull_request
-[ ] No push step present (confirm by reading workflow)
-[ ] Conventional commit landed on a PR into main
+[x] `hadolint Dockerfile` passes locally against the committed Dockerfile
+[x] CI workflow lints the Dockerfile on pull_request (evidence: `.github/workflows/docker.yml` `hadolint` job)
+[x] No push step present (confirm by reading workflow)
+[x] Conventional commit landed on a PR into main (PRs #22, #24)
 
 ### T-012 — Label set with hex colours + auto-label workflow [kind:infra]
 
@@ -765,7 +765,7 @@ Links: —
 BlockedBy: T-001
 Blocks: T-013
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
 Colour-coded label taxonomy covering phases, REQ-IDs (v1 only), kinds, and sizes, plus a PR auto-label workflow that applies `kind:*` from branch-prefix and `size:*` from changed-lines on every `pull_request_target`. `kind:decision` and `kind:gate` remain manual (content categories, not commit types). `phase:*` and `req:*` are deferred to a proposed T-012.1 follow-up because they require parsing the task-list.
@@ -779,12 +779,12 @@ Approach / Files:
 - docs/dev-guide.md :: labeler section + manual-only label dimensions (`phase:*`, `req:*`, `kind:decision`, `kind:gate`)
 
 Acceptance:
-[ ] `.github/labels.yml` committed
-[ ] `scripts/sync_labels.sh` creates all labels against the repo (idempotent)
-[ ] Each group uses a distinct hex-colour family
-[ ] `pr-label.yml` applies a `kind:*` label on a new PR from a conventional branch name (feat/fix/refactor/test/infra/docs/spike/ops)
-[ ] `pr-label.yml` applies a `size:*` label on a new PR from lines changed
-[ ] Conventional commit landed on a PR into main
+[x] `.github/labels.yml` committed
+[x] `scripts/sync_labels.sh` creates all labels against the repo (idempotent) (evidence: 62 labels live via `gh api repos/.../labels`)
+[x] Each group uses a distinct hex-colour family
+[x] `pr-label.yml` applies a `kind:*` label on a new PR from a conventional branch name (feat/fix/refactor/test/infra/docs/spike/ops) (evidence: PR #31 `fix/...` → `kind:impl`; PR #32 `spike/...` → `kind:spike`)
+[x] `pr-label.yml` applies a `size:*` label on a new PR from lines changed (evidence: PRs #30–#32 labelled `size:xs`/`size:m`)
+[x] Conventional commit landed on a PR into main (PR #25)
 
 ### T-013 — Issue templates [kind:infra]
 
@@ -793,7 +793,7 @@ Links: —
 BlockedBy: T-012
 Blocks: T-014
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Four issue templates surfacing the right fields for each kind of issue.
@@ -807,9 +807,9 @@ Approach / Files:
 - .github/ISSUE_TEMPLATE/config.yml :: `blank_issues_enabled: false`
 
 Acceptance:
-[ ] All four templates render in "New issue" UI
-[ ] Blank issues disabled
-[ ] Conventional commit landed on a PR into main
+[x] All four templates render in "New issue" UI (evidence: `.github/ISSUE_TEMPLATE/{bug,feature,spike,docs}.yml` present and valid)
+[x] Blank issues disabled (evidence: `.github/ISSUE_TEMPLATE/config.yml` `blank_issues_enabled: false`)
+[x] Conventional commit landed on a PR into main (PR #26)
 
 ### T-014 — PR template [kind:infra]
 
@@ -818,7 +818,7 @@ Links: —
 BlockedBy: T-013
 Blocks: —
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Single PR template with Summary / What changed / How to test / Checklist — enforces a conventional-commits title.
@@ -828,9 +828,9 @@ Approach / Files:
 - .github/PULL_REQUEST_TEMPLATE.md :: Summary, What changed (bullets), How to test (commands), Checklist (ruff/mypy/pytest passed, conventional-commit title, related task ID)
 
 Acceptance:
-[ ] Template renders on new PR
-[ ] Checklist includes conventional-commit reminder and task-ID link field
-[ ] Conventional commit landed on a PR into main
+[x] Template renders on new PR (evidence: PR #28 onwards used the template sections)
+[x] Checklist includes conventional-commit reminder and task-ID link field (evidence: `.github/PULL_REQUEST_TEMPLATE.md` lines 20–21)
+[x] Conventional commit landed on a PR into main (PR #27)
 
 ### T-015 — PR status aggregator comment workflow [kind:infra]
 
@@ -839,7 +839,7 @@ Links: —
 BlockedBy: T-009
 Blocks: —
 Estimate: 1d
-Status: pending
+Status: done
 
 What:
 Sticky PR comment aggregating workflow statuses (per-job rows for `ci`; one row per other tracked workflow) with a mergeability footer. Listens to `workflow_run` events for `[ci, pr-label, docs-site]` plus `pull_request` opens; upserts a single comment via `marocchino/sticky-pull-request-comment@v2` keyed on `header: graphwash-status`. Soft-depends on T-012: if T-012 has not merged yet, the `pr-label` row simply does not appear until it does. T-011 (Docker CI stub) will amend the `workflows:` filter to add `docker-ci`.
@@ -852,12 +852,12 @@ Approach / Files:
 - docs/dev-guide.md :: short section describing the status comment and its trigger semantics
 
 Acceptance:
-[ ] `pr-status.yml` deployed; first run posts the sticky comment within 30s of PR open
-[ ] Comment updates in place on `workflow_run: requested` with an in-progress row for the triggered workflow
-[ ] Comment updates in place on `workflow_run: completed` with terminal status glyph and duration
-[ ] Mergeability footer reflects current `gh pr view` state across CLEAN / UNSTABLE / BLOCKED / BEHIND / DIRTY / UNKNOWN
-[ ] Double-push race (two commits within 2s): final rendered comment reflects only the latest SHA's runs
-[ ] Conventional commit landed on a PR into main
+[x] `pr-status.yml` deployed; first run posts the sticky comment within 30s of PR open (evidence: sticky comment present on PRs #28–#32)
+[x] Comment updates in place on `workflow_run: requested` with an in-progress row for the triggered workflow (evidence: `.github/workflows/pr-status.yml` `types: [requested, completed]`)
+[x] Comment updates in place on `workflow_run: completed` with terminal status glyph and duration (evidence: PR #32 sticky renders `[PASS] success | 44s` per-job ci rows)
+[x] Mergeability footer reflects current `gh pr view` state across CLEAN / UNSTABLE / BLOCKED / BEHIND / DIRTY / UNKNOWN (evidence: `scripts/build-pr-status.sh:34-38` case block covers all 6 states; CLEAN observed live on PR #32)
+[x] Double-push race (two commits within 2s): final rendered comment reflects only the latest SHA's runs (evidence: `scripts/build-pr-status.sh:62-68` filters by `head_sha == $sha` then `max_by(.id)` per workflow)
+[x] Conventional commit landed on a PR into main (PRs #28, #31)
 
 ### T-019 — S-03 Hetzner provision + Docker smoke test [kind:spike]
 
@@ -916,10 +916,10 @@ Acceptance:
 
 Phase: Pilot
 Links: spec §8 (Pilot exit gate)
-BlockedBy: T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011, T-012, T-013, T-014, T-019, T-020
+BlockedBy: T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009, T-010, T-011, T-012, T-013, T-014, T-015, T-019, T-020
 Blocks: T-022
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
 Verify Pilot exit criteria and record evidence. The Pilot Phase is DONE when (a) the repo is public on GitHub with branch protection live on main, (b) CI runs ruff + mypy + pytest on a trivial smoke test, (c) all non-spike Pilot tasks are merged, (d) S-03 reports DONE in PRD §11a, (e) S-04 reports DONE in PRD §11a.
@@ -930,13 +930,13 @@ Approach / Files:
 - Update the Estimate roll-up table in this file with Pilot actual
 
 Acceptance:
-[ ] Repo public with branch protection live on main (evidence: repo URL + screenshot of rules)
-[ ] CI runs ruff + mypy + pytest on `tests/test_smoke.py` and reports green (evidence: CI run URL)
-[ ] All non-spike Pilot tasks T-001..T-014 merged into main
-[ ] S-03 reports DONE in PRD §11a
-[ ] S-04 reports DONE in PRD §11a
-[ ] Pilot estimate-vs-actual recorded in the Estimate roll-up table
-[ ] Conventional commit landed on a PR into main
+[x] Repo public with branch protection live on main (evidence: https://github.com/dinesh-git17/graphwash public; branch-protection API reports `enforce_admins: true`, `required_linear_history: true`, `allow_force_pushes: false`, `allow_deletions: false`, required contexts `[lint, test]`; screenshot attached in PR body)
+[x] CI runs ruff + mypy + pytest on `tests/test_smoke.py` and reports green (evidence: run https://github.com/dinesh-git17/graphwash/actions/runs/24753657809 on `main@c65bdb6`, conclusion success; `.github/workflows/ci.yml` runs `ruff format --check`, `ruff check`, `mypy --strict src`, `pytest -q --no-cov`)
+[x] All non-spike Pilot tasks T-001..T-015 merged into main (evidence: PRs #1–#32; this PR ticks the T-010..T-015 backlog and flips their statuses)
+[x] S-03 reports DONE in PRD §11a (evidence: `docs/graphwash-prd.md` §11a table row, closed 2026-04-21)
+[x] S-04 reports DONE in PRD §11a (evidence: `docs/graphwash-prd.md` §11a table row, closed 2026-04-21)
+[x] Pilot estimate-vs-actual recorded in the Estimate roll-up table
+[x] Conventional commit landed on a PR into main
 
 ### Spikes and decisions consumed by this phase
 
