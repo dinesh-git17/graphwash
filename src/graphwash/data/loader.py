@@ -203,6 +203,31 @@ def _build_account_node_index(
     return bundle, df
 
 
+def _build_bank_index(
+    df: pd.DataFrame,
+    bundle: NodeIndexBundle,
+) -> NodeIndexBundle:
+    """Populate the bank portion of the NodeIndexBundle.
+
+    ``bank_ordered`` is the sorted union of ``from_bank`` and
+    ``to_bank``. Lookups at use sites call ``np.searchsorted`` so
+    there is no density assumption on bank id range.
+    """
+    bank_ordered = np.unique(
+        np.concatenate(
+            [df["from_bank"].to_numpy(), df["to_bank"].to_numpy()],
+        ),
+    ).astype(np.int32)
+    return NodeIndexBundle(
+        composite_ids=bundle.composite_ids,
+        bank_id_per_composite=bundle.bank_id_per_composite,
+        account_type_per_composite=bundle.account_type_per_composite,
+        individual_local_idx=bundle.individual_local_idx,
+        business_local_idx=bundle.business_local_idx,
+        bank_ordered=bank_ordered,
+    )
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
