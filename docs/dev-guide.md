@@ -39,10 +39,6 @@ cd graphwash
 # Install dependencies (creates .venv, resolves from uv.lock)
 uv sync
 
-# Copy the env template and fill in secrets
-cp .env.example .env
-# Edit .env — set WANDB_API_KEY, KAGGLE_USERNAME, KAGGLE_KEY if training locally
-
 # Download the test fixture subset (small, checked into tests/fixtures)
 # No download needed — fixtures are committed.
 
@@ -52,6 +48,28 @@ uv run ruff format --check
 uv run mypy --strict src
 uv run pytest
 ```
+
+### Kaggle credentials
+
+The download script (`scripts/download_data.py`) authenticates via
+Kaggle's standard lookup order.
+
+- **Local dev.** Drop `kaggle.json` (from
+  kaggle.com → Account → API → Create New Token) at
+  `~/.kaggle/kaggle.json`, then:
+
+  ```bash
+  chmod 600 ~/.kaggle/kaggle.json
+  ```
+
+- **Training hosts and CI.** Export `KAGGLE_USERNAME` and `KAGGLE_KEY`
+  as shell environment variables. When both are set they override
+  `kaggle.json`.
+
+`.env.example` at the repo root is the reference list of env vars
+required on training hosts. Nothing in the repo auto-loads `.env` —
+copy the values into your shell with `export KAGGLE_USERNAME=...
+KAGGLE_KEY=...` (see §6 Training) before running the download script.
 
 ---
 
@@ -150,7 +168,7 @@ uv sync
 export WANDB_API_KEY=...
 export KAGGLE_USERNAME=... KAGGLE_KEY=...
 
-uv run python scripts/download_data.py --size medium
+uv run python scripts/download_data.py
 uv run python scripts/train.py --config configs/hgt-v1.yaml
 
 # Before destroying the instance
