@@ -84,3 +84,4 @@ site/_dist/
 
 # Local artefacts
 scratch/
+.scratch/
