@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
+import pandas as pd
+
+from graphwash.data import schema
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -22,6 +26,29 @@ RELATIVE_TIMESTAMP_MARGIN_S: Final[int] = 10
 
 INDIVIDUAL_CODE: Final[int] = 0
 BUSINESS_CODE: Final[int] = 1
+
+_READ_CSV_DTYPES: Final[dict[str, str]] = {
+    "From Bank": "int32",
+    "To Bank": "int32",
+    "Account": "string",
+    "Account.1": "string",
+    "Amount Paid": "float32",
+    "Receiving Currency": "category",
+    "Payment Currency": "category",
+    "Is Laundering": "int8",
+}
+
+_USECOLS: Final[tuple[str, ...]] = (
+    "Timestamp",
+    "From Bank",
+    "Account",
+    "To Bank",
+    "Account.1",
+    "Amount Paid",
+    "Receiving Currency",
+    "Payment Currency",
+    "Is Laundering",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +79,56 @@ class AtBankEdgeBundle:
     """Per-account-type at_bank edge store payload."""
 
     edge_index: Tensor
+
+
+def _load_raw_csv(csv_path: Path) -> pd.DataFrame:
+    """Load the raw HI-Medium CSV with typed dtypes applied.
+
+    Drops ``Amount Received`` and ``Payment Format`` via ``usecols``
+    (unused by T-024 per the spec). Timestamps are parsed into
+    ``datetime64[ns]`` using the captured ``TIMESTAMP_FORMAT``.
+
+    Raises:
+        FileNotFoundError: ``csv_path`` does not exist.
+        ValueError: CSV is empty or columns disagree with the
+            expected post-rename set.
+    """
+    resolved_path = csv_path.resolve()
+    if not csv_path.is_file():
+        msg = f"expected HI-Medium CSV at {resolved_path}"
+        raise FileNotFoundError(msg)
+
+    try:
+        df = pd.read_csv(
+            csv_path,
+            usecols=list(_USECOLS),
+            dtype={
+                column: dtype
+                for column, dtype in _READ_CSV_DTYPES.items()
+                if column in _USECOLS
+            },
+            parse_dates=["Timestamp"],
+            date_format=schema.TIMESTAMP_FORMAT,
+        )
+    except ValueError as error:
+        msg = f"column set mismatch at {resolved_path}: {error}"
+        raise ValueError(msg) from error
+
+    if len(df) == 0:
+        msg = f"CSV at {resolved_path} is empty (no data rows)"
+        raise ValueError(msg)
+
+    df = df.rename(columns=schema.RENAME_MAP)
+
+    expected = {schema.RENAME_MAP[column] for column in _USECOLS}
+    if set(df.columns) != expected:
+        msg = (
+            f"column set mismatch at {resolved_path}: "
+            f"expected {sorted(expected)}, got {sorted(df.columns)}"
+        )
+        raise ValueError(msg)
+
+    return df
 
 
 def build_hetero_data(csv_dir: Path) -> HeteroData:
