@@ -40,3 +40,6 @@ jobs:
       - run: uv sync --frozen --extra dev
       - run: uv run mypy --strict src
       - run: uv run pytest -q --no-cov
+        env:
+          KAGGLE_USERNAME: ci
+          KAGGLE_KEY: ci

@@ -15,10 +15,13 @@ Reproduction recipe
 Ensure ``~/.kaggle/kaggle.json`` is present with 0600 permissions, then::
 
     kaggle datasets download \
-        -d ealtman2019/ibm-transactions-for-anti-money-laundering-aml \
-        -f HI-Medium_Trans.csv \
+        -d <DATASET_SLUG> \
+        -f <RAW_FILENAME> \
         -p data/raw/ \
         --unzip
+
+where ``DATASET_SLUG`` and ``RAW_FILENAME`` are the module-level
+``Final`` constants defined at the bottom of this module.
 
 Capture with pandas::
 
@@ -151,3 +154,6 @@ PAPER_HI_MEDIUM_STATS: Final[Mapping[str, int]] = {
     "laundering_transactions": 35_000,
     "laundering_rate_1_per_n": 905,
 }
+
+DATASET_SLUG: Final[str] = "ealtman2019/ibm-transactions-for-anti-money-laundering-aml"
+RAW_FILENAME: Final[str] = "HI-Medium_Trans.csv"

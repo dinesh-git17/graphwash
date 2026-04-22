@@ -998,22 +998,23 @@ Links: REQ-001
 BlockedBy: T-022
 Blocks: T-024
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
-Reproducible, one-command dataset download using the Kaggle CLI.
+Reproducible, one-command dataset download using the Kaggle Python API.
 
 Approach / Files:
 
-- scripts/download_data.py :: calls `kaggle datasets download <IT-AML Medium slug>`, unzips to `data/raw/`
-- docs/dev-guide.md :: `~/.kaggle/kaggle.json` setup instructions + data directory layout
+- scripts/download_data.py :: zero-arg CLI; calls `kaggle.api.dataset_download_file()` against the HI-Medium slug and extracts the zip Kaggle wraps large files in; `--force` to re-download.
+- src/graphwash/data/schema.py :: `DATASET_SLUG` and `RAW_FILENAME` surfaced as `Final[str]` constants for the script and future loaders.
+- docs/dev-guide.md :: §2 Kaggle credentials block (kaggle.json local, env vars for training hosts); §6 Training invocation updated to zero-arg.
 
 Acceptance:
-[ ] `uv run python scripts/download_data.py` downloads and extracts IT-AML Medium
-[ ] `docs/dev-guide.md` updated with credential setup
-[ ] `data/` added to `.gitignore` (verify T-005 entry)
-[ ] ruff + mypy --strict clean; pytest green
-[ ] Conventional commit landed on a PR into main
+[x] `uv run python scripts/download_data.py` downloads and extracts IT-AML Medium
+[x] `docs/dev-guide.md` updated with credential setup
+[x] `data/` added to `.gitignore` (verify T-005 entry)
+[x] ruff + mypy --strict clean; pytest green
+[x] Conventional commit landed on a PR into main
 
 ### T-024 — HeteroData construction [kind:impl]
 
