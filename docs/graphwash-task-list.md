@@ -998,7 +998,7 @@ Links: REQ-001
 BlockedBy: T-022
 Blocks: T-024
 Estimate: 0.25d
-Status: pending
+Status: in_progress
 
 What:
 Reproducible, one-command dataset download using the Kaggle CLI.
