@@ -34,6 +34,7 @@
 - 2026-04-21: T-019 / S-03 closed. Reused existing hel1-dc2 8 GB VPS; all four acceptance gates cleared (see `docs/ops/hetzner.md`). PRD RAM floor relaxed to ">= 8GB conditional on Phase 2 idle RSS <= 3 GB, else >= 16GB" across REQ-021, §8 P0 NFR row, §9 NFR performance line, §11 assumption 5, §12 dependency row, §13 break-question row 5. ADR-0006 locks the decision.
 - 2026-04-21: T-020 / S-04 closed. Per-IP Caddy rate-limit (10 events / 1 s, key `{remote_host}`) verified live via concurrent burst against `graphwash.dineshd.dev`; UptimeRobot 5-minute keyword monitor on `/api/v1/health` verified with 2 m 57 s DOWN-alert latency. §17 monitoring threshold widened from `> 2 minutes` to `> 5 minutes` because UptimeRobot free-tier minimum interval is 5 min, not 2 min as originally assumed. §18 gains an open question on monitoring vendor for v1.0.
 - 2026-04-22: T-022 / S-02 closed. Raw schema of `HI-Medium_Trans.csv` captured in `src/graphwash/data/schema.py`. Kill signal fired on prior ~2% illicit-rate assumption; paper Table 4 and captured data agree on 1 per 905 (~0.11%). §1, REQ-001, REQ-002, §14 Tradeoff 3, §11a S-02 amended. ADR-0007 locks HI-Medium over LI-Medium for baseline comparability and F1-reachability.
+- 2026-04-22: T-024 PR #37 closed without merge. Post-merge review surfaced three coupled data-pipeline defects: account node identity collapsed distinct `(bank, account)` pairs under shared nodes; `bank` nodes were edge-isolated (contradicting ADR-0001 Context and REQ-013a `dst_type: "bank"` example); timestamp contract drifted from IBM reference preprocessing. REQ-001 amended to composite node identity and two edge types (`wire_transfer` + `at_bank`). ADR-0008 locks the preprocessing decisions; T-024 and T-027 rewritten; ADR README index updated.
 
 ---
 
@@ -256,7 +257,7 @@ Edge cases:
 
 Data pipeline
 
-- REQ-001: The system must download and preprocess the IBM IT-AML HI-Medium dataset (see ADR-0007) from Kaggle, constructing a `HeteroData` object with three node types (`individual`, `business`, `bank`) and one edge type (`wire_transfer`) with per-edge features: amount, timestamp, currency flag.
+- REQ-001: The system must download and preprocess the IBM IT-AML HI-Medium dataset (see ADR-0007) from Kaggle, constructing a `HeteroData` object keyed by composite `(bank, account)` node identity (see ADR-0008), with three node types (`individual`, `business`, `bank`) and two edge types: `wire_transfer` (account-to-account transactions, per-edge features: `amount_paid` float32, relative timestamp int64 per ADR-0008, cross-currency int8 flag) and `at_bank` (account-to-bank membership, no per-edge features).
 - REQ-002: The system must apply stratified train/validation/test splits preserving the ~0.11% illicit class ratio across splits.
 - REQ-003: The system must handle class imbalance explicitly via weighted cross-entropy loss, with the positive class weight computed from the training split label distribution.
 

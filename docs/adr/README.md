@@ -14,6 +14,7 @@ Michael Nygard minimal format. Each ADR captures one irreversible
 | [0005](0005-monolith-delivery-model.md)    | Single-process FastAPI monolith serving API + frontend | Accepted |
 | [0006](0006-hetzner-instance-choice.md)    | Hetzner instance choice (hel1-dc2 8 GB reuse)          | Accepted |
 | [0007](0007-hi-medium-over-li-medium.md)   | Use IT-AML HI-Medium over LI-Medium                    | Accepted |
+| [0008](0008-composite-node-ids-and-at-bank-relation.md) | Composite (bank, account) node IDs and `at_bank` relation | Accepted |
 
 ## Format
 

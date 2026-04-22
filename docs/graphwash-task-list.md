@@ -75,7 +75,7 @@ Acceptance:
 ```mermaid
 flowchart LR
     Pilot["Pilot<br/>~6.75d<br/>T-001..T-021"]:::pilot
-    P0["Phase 0<br/>Env & Data<br/>~2.75d"]:::p0
+    P0["Phase 0<br/>Env & Data<br/>~3.25d"]:::p0
     P1["Phase 1<br/>GraphSAGE<br/>~3.25d"]:::p1
     P2["Phase 2<br/>HGT<br/>~5.25d"]:::p2
     P3["Phase 3<br/>API<br/>~3.75d"]:::p3
@@ -186,7 +186,7 @@ Source: sum of `Estimate:` fields per phase, with absorption applied per spec §
 | Phase    | Raw estimate | kind:test tasks | kind:docs tasks | Actual (cal days)           | Notes                                  |
 | -------- | ------------ | --------------- | --------------- | --------------------------- | -------------------------------------- |
 | Pilot    | 7.75d        | 0               | 0.75d           | 3d (2026-04-19..2026-04-21) | T-015 (PR status aggregator) added +1d |
-| Phase 0  | 2.75d        | 0.25d           | 0               | —                           |                                        |
+| Phase 0  | 3.25d        | 0.25d           | 0               | —                           | T-024 bumped 0.5d → 1d (ADR-0008)      |
 | Phase 1  | 3.25d        | 0.25d           | 0.5d            | —                           |                                        |
 | Phase 2  | 5.25d        | 0.25d           | 0.75d           | —                           | T-040 reduced 1d → 0.5d (Task 14 trim) |
 | Phase 3  | 3.75d        | 0.5d            | 0               | —                           |                                        |
@@ -196,7 +196,7 @@ Source: sum of `Estimate:` fields per phase, with absorption applied per spec §
 
 | Aggregate                                            | Value                                                 |
 | ---------------------------------------------------- | ----------------------------------------------------- |
-| **Raw total**                                        | 30.0d                                                 |
+| **Raw total**                                        | 30.5d                                                 |
 | Test total (full absorption)                         | 1.5d                                                  |
 | Docs total (50% absorption)                          | 2.5d                                                  |
 | Total absorption                                     | 2.75d                                                 |
@@ -1019,23 +1019,26 @@ Acceptance:
 ### T-024 — HeteroData construction [kind:impl]
 
 Phase: 0
-Links: REQ-001
+Links: REQ-001, ADR-0008
 BlockedBy: T-023
 Blocks: T-025, T-026, T-027, T-028
-Estimate: 0.5d
+Estimate: 1d
 Status: pending
 
 What:
-Build a PyG `HeteroData` object with three node types (`individual`, `business`, `bank`) and one edge type (`wire_transfer`) carrying per-edge features amount / timestamp / currency-flag.
+Build a PyG `HeteroData` object keyed by composite `(bank, account)` node identity (per ADR-0008) with three node types (`individual`, `business`, `bank`) and two edge types: `wire_transfer` (account-to-account, carrying `amount_paid` float32, relative timestamp int64, cross-currency int8 flag) and `at_bank` (account-to-bank membership, no per-edge features). Timestamps encoded as seconds relative to `floor(min(timestamp), day) - 10s` per IBM `format_kaggle_files.py` reference.
 
 Approach / Files:
 
-- src/data/loader.py :: `build_hetero_data(csv_dir: Path) -> HeteroData` constructing per-type node tables, edge index, edge features
-- tests/data/test_loader.py :: loads a 1k-row fixture CSV; asserts node-type counts, edge count, edge-feature dtypes, required edge keys
+- src/graphwash/data/loader.py :: `build_hetero_data(csv_dir: Path) -> HeteroData` producing composite-keyed per-type node tables, both edge-type indices, per-edge `wire_transfer` features, and module-level `DATASET_EPOCH_OFFSET_S` for the relative timestamp encoding
+- src/graphwash/data/node_types.py :: deterministic SHA-256 account-type split applied to composite `(bank, account)` ids; training-data synthesis only (see ADR-0008)
+- tests/data/test_loader.py :: 1k-row synthetic fixture CSV; asserts composite-node deduplication (distinct `(bank, account)` pairs land in distinct nodes), both edge-type triplet coverage, every account carries at least one `at_bank` edge to its declared bank, edge-feature dtypes on `wire_transfer`, and an `HGTConv` smoke test producing embeddings for all three node types
 
 Acceptance:
-[ ] `build_hetero_data()` returns a PyG `HeteroData` instance with the three node types and one edge type per REQ-001
-[ ] Edge features include amount (float), timestamp (datetime64), currency flag (categorical or int)
+[ ] `build_hetero_data()` returns a PyG `HeteroData` keyed by composite `(bank, account)` identity with three node types and two edge types (`wire_transfer`, `at_bank`) per REQ-001 + ADR-0008
+[ ] `wire_transfer` edges carry `amount_paid` (float32), relative timestamp (int64 seconds per ADR-0008), cross-currency flag (int8)
+[ ] Every account node has at least one `at_bank` edge to its declared bank
+[ ] `HGTConv` smoke test on the built graph produces embeddings for all three node types (no structurally dead type)
 [ ] `tests/data/test_loader.py` green on 1k-row fixture
 [ ] ruff + mypy --strict clean; pytest green
 [ ] Conventional commit landed on a PR into main
@@ -1090,24 +1093,25 @@ Acceptance:
 ### T-027 — Graph statistics validation vs paper [kind:test]
 
 Phase: 0
-Links: REQ-001, S-02
+Links: REQ-001, S-02, ADR-0008
 BlockedBy: T-024
 Blocks: T-029
 Estimate: 0.25d
 Status: pending
 
 What:
-Integration test asserting node counts per type, edge counts, and illicit rate match the numbers captured in `src/data/schema.py` (from S-02) within ±5%.
+Integration test asserting aggregate graph statistics match the paper reference values captured in `src/graphwash/data/schema.py` (from S-02) within stated tolerances. Per-type counts are NOT asserted against paper: the paper publishes no `individual`/`business`/`bank` breakdown and the three-type split in graphwash is a training-data synthesis per ADR-0008.
 
 Approach / Files:
 
-- tests/data/test_graph_stats.py :: compares live counts from `build_hetero_data()` against the reference numbers in `src/data/schema.py`
+- tests/data/test_graph_stats.py :: compares live aggregate counts from `build_hetero_data()` against `schema.TOTAL_TRANSACTIONS`, `schema.LAUNDERING_TRANSACTIONS`, and `schema.ILLICIT_FRACTION`; records per-type node and edge counts in the test output as informational context (no hard gate)
 
 Acceptance:
-[ ] Node counts per type match paper within ±5%
-[ ] Edge count matches paper within ±5%
-[ ] Illicit rate matches paper within ±0.5 percentage points
-[ ] Reference numbers in `src/data/schema.py` cited in the test assertion messages
+[ ] Total `wire_transfer` edge count matches `schema.TOTAL_TRANSACTIONS` within ±5%
+[ ] Total laundering edge count matches `schema.LAUNDERING_TRANSACTIONS` within ±5%
+[ ] Illicit fraction matches `schema.ILLICIT_FRACTION` within ±0.5 percentage points
+[ ] Per-type node counts and `at_bank` edge count logged to test output (informational; no paper reference to compare against)
+[ ] Reference constants in `src/graphwash/data/schema.py` cited in test assertion messages
 [ ] ruff + mypy --strict clean; pytest green
 [ ] Conventional commit landed on a PR into main
 
