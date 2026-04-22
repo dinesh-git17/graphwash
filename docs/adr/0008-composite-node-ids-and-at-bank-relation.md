@@ -54,10 +54,15 @@ session:
    training.
 
 3. **Timestamps follow IBM convention.** Relative seconds from
-   `floor(min(timestamp), day) - 10s`, stored as int64 on each
-   `wire_transfer` edge. Both the dataset epoch and the `-10s` offset
-   are captured in the loader module as module-level constants and
-   noted in the PRD amendment.
+   `floor(min(timestamp), day) − RELATIVE_TIMESTAMP_MARGIN_S`,
+   stored as int64 on each `wire_transfer` edge. The
+   `RELATIVE_TIMESTAMP_MARGIN_S = 10` value is a module-level
+   constant in the loader; the dataset epoch is a property of the
+   input CSV, computed per load, and attached to the returned
+   `HeteroData` as `graphwash_timestamp_epoch_s`. A canonical
+   HI-Medium reference value MAY be captured in
+   `src/graphwash/data/schema.py` for documentation and
+   full-dataset assertions; it is not the runtime source of truth.
 
 4. **Individual/business split stays synthetic, for training data
    only.** The deterministic SHA-256 hash policy applied to composite
@@ -102,6 +107,10 @@ Neutral:
   to supply `{"type": "individual" | "business" | "bank"}` on the
   node list; the server-side synthetic policy only governs training
   data construction.
+- The original "module-level constant" phrasing conflated the truly
+  constant `-10s` margin with the dataset-dependent epoch. Section 1
+  of the T-024 design surfaced the imprecision; Decision 3 above now
+  matches what the loader implementation does.
 
 ## References
 
