@@ -421,6 +421,68 @@ def _compute_bank_features(
     return torch.from_numpy(features)
 
 
+def _build_wire_transfer_edges(
+    df: pd.DataFrame,
+    bundle: NodeIndexBundle,
+    rel_ts: NDArray[np.int64],
+) -> dict[tuple[str, str, str], WireTransferEdgeBundle]:
+    """Build per-triplet wire_transfer edge bundles.
+
+    Emits one ``WireTransferEdgeBundle`` for each ``(src_type,
+    dst_type)`` combination actually present in the data. Triplets
+    with zero rows are not emitted.
+    """
+    src_type = bundle.account_type_per_composite[df["from_composite_idx"].to_numpy()]
+    dst_type = bundle.account_type_per_composite[df["to_composite_idx"].to_numpy()]
+
+    cross_currency_mask = (
+        (df["receiving_currency"].astype(str) != df["payment_currency"].astype(str))
+        .to_numpy()
+        .astype(np.int8)
+    )
+
+    type_names = {INDIVIDUAL_CODE: "individual", BUSINESS_CODE: "business"}
+    local_by_type = {
+        INDIVIDUAL_CODE: bundle.individual_local_idx,
+        BUSINESS_CODE: bundle.business_local_idx,
+    }
+
+    edges: dict[tuple[str, str, str], WireTransferEdgeBundle] = {}
+    for src_code in (INDIVIDUAL_CODE, BUSINESS_CODE):
+        for dst_code in (INDIVIDUAL_CODE, BUSINESS_CODE):
+            mask = (src_type == src_code) & (dst_type == dst_code)
+            if not mask.any():
+                continue
+
+            src_local = local_by_type[src_code][
+                df["from_composite_idx"].to_numpy()[mask]
+            ]
+            dst_local = local_by_type[dst_code][df["to_composite_idx"].to_numpy()[mask]]
+            edge_index = torch.from_numpy(
+                np.stack([src_local, dst_local], axis=0).astype(np.int64),
+            )
+            amount_paid = torch.from_numpy(
+                df["amount_paid"].to_numpy()[mask].astype(np.float32),
+            )
+            timestamp = torch.from_numpy(rel_ts[mask].astype(np.int64))
+            cross_currency = torch.from_numpy(cross_currency_mask[mask])
+            y = torch.from_numpy(
+                df["is_laundering"].to_numpy()[mask].astype(np.int8),
+            )
+
+            edges[(type_names[src_code], "wire_transfer", type_names[dst_code])] = (
+                WireTransferEdgeBundle(
+                    edge_index=edge_index,
+                    amount_paid=amount_paid,
+                    timestamp=timestamp,
+                    cross_currency=cross_currency,
+                    y=y,
+                )
+            )
+
+    return edges
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
