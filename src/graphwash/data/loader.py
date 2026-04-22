@@ -10,14 +10,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
+import numpy as np
 import pandas as pd
 
 from graphwash.data import schema
+from graphwash.data.node_types import assign_account_type
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    import numpy as np
     from numpy.typing import NDArray
     from torch import Tensor
     from torch_geometric.data import HeteroData
@@ -144,6 +145,62 @@ def _drop_self_loops(df: pd.DataFrame) -> pd.DataFrame:
         df["from_account"] == df["to_account"]
     )
     return df.loc[~self_loop_mask].reset_index(drop=True)
+
+
+def _build_account_node_index(
+    df: pd.DataFrame,
+) -> tuple[NodeIndexBundle, pd.DataFrame]:
+    """Factorise composite (bank, account) nodes and assign types.
+
+    Returns the partial ``NodeIndexBundle`` (account portion; bank
+    portion populated by ``_build_bank_index``) and ``df`` augmented
+    with two new ``int64`` columns ``from_composite_idx`` and
+    ``to_composite_idx`` for downstream edge construction.
+    """
+    from_composite = df["from_bank"].astype(str) + "|" + df["from_account"].astype(str)
+    to_composite = df["to_bank"].astype(str) + "|" + df["to_account"].astype(str)
+
+    union = pd.concat([from_composite, to_composite], ignore_index=True)
+    codes, categories = pd.factorize(union, sort=False)
+
+    composite_ids = tuple(categories.tolist())
+    num_composites = len(composite_ids)
+
+    bank_id_per_composite = np.array(
+        [int(composite_id.split("|", 1)[0]) for composite_id in composite_ids],
+        dtype=np.int32,
+    )
+
+    account_type_per_composite = np.empty(num_composites, dtype=np.uint8)
+    for i, composite_id in enumerate(composite_ids):
+        account_type_per_composite[i] = (
+            INDIVIDUAL_CODE
+            if assign_account_type(composite_id) == "individual"
+            else BUSINESS_CODE
+        )
+
+    individual_mask = account_type_per_composite == INDIVIDUAL_CODE
+    business_mask = account_type_per_composite == BUSINESS_CODE
+
+    individual_local_idx = np.full(num_composites, -1, dtype=np.int64)
+    business_local_idx = np.full(num_composites, -1, dtype=np.int64)
+    individual_local_idx[individual_mask] = np.arange(int(individual_mask.sum()))
+    business_local_idx[business_mask] = np.arange(int(business_mask.sum()))
+
+    n_rows = len(df)
+    df = df.copy()
+    df["from_composite_idx"] = codes[:n_rows].astype(np.int64)
+    df["to_composite_idx"] = codes[n_rows:].astype(np.int64)
+
+    bundle = NodeIndexBundle(
+        composite_ids=composite_ids,
+        bank_id_per_composite=bank_id_per_composite,
+        account_type_per_composite=account_type_per_composite,
+        individual_local_idx=individual_local_idx,
+        business_local_idx=business_local_idx,
+        bank_ordered=np.empty(0, dtype=np.int32),
+    )
+    return bundle, df
 
 
 def build_hetero_data(csv_dir: Path) -> HeteroData:
