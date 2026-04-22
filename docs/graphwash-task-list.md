@@ -173,7 +173,7 @@ Mirrors PRD §11a. S-01..S-04 each have a host task whose acceptance includes st
 | S-01 | CPU p95 latency < 200 ms on 500-edge subgraph       | MUST RUN      | 2026-04-22        | T-028            |
 | S-02 | IT-AML Medium schema matches NeurIPS 2023 paper     | MUST RUN      | 2026-04-22        | T-022            |
 | S-03 | Hetzner VPS + Docker + Caddy viability (hel1-dc2 8 GB reuse) | DONE | closed 2026-04-21 | T-019            |
-| S-04 | Caddy per-IP rate limit + UptimeRobot 2-min cadence | MUST RUN      | 2026-05-06        | T-020            |
+| S-04 | Caddy per-IP rate limit + UptimeRobot 5-min cadence | DONE          | closed 2026-04-21 | T-020            |
 | R-01 | HGT beats IBM Multi-GNN baseline (F1 ≥ 0.72)        | ACCEPTED RISK | end of Phase 2    | T-046 (resolved) |
 | R-02 | HGT attention weights non-degenerate                | ACCEPTED RISK | end of Phase 2    | T-046 (resolved) |
 
@@ -894,7 +894,7 @@ Links: S-04, PRD §11a, PRD §18 Q-06 (feasibility portion)
 BlockedBy: T-019
 Blocks: T-021, T-067
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
 Add 5-line Caddy rate-limit block; verify bursts are 429'd. Create UptimeRobot monitor at 2-min cadence; verify alert email reaches dind.dev@gmail.com within §17 response window. Target: 2026-05-06.
@@ -906,11 +906,11 @@ Approach / Files:
 - docs/ops/monitoring.md :: captured screenshots + alert-email test log
 
 Acceptance:
-[ ] Rate limit blocks > 10 req/s sustained from single IP (evidence: `hey -n 100 -c 10` output shows 429s)
-[ ] UptimeRobot free-tier 2-min cadence confirmed (evidence: monitor-config screenshot)
-[ ] Deliberate container stop triggers alert email within 5 min (evidence: email timestamp)
-[ ] PRD §11a S-04 row moved to DONE
-[ ] Conventional commit landed on a PR into main
+[x] Rate limit blocks > 10 req/s sustained from single IP (evidence: `hey -n 100 -c 10` output shows 429s)
+[x] UptimeRobot free-tier 2-min cadence confirmed (evidence: monitor-config screenshot)
+[x] Deliberate container stop triggers alert email within 5 min (evidence: email timestamp)
+[x] PRD §11a S-04 row moved to DONE
+[x] Conventional commit landed on a PR into main
 
 ### T-021 — Pilot exit gate [kind:gate]
 
@@ -2167,7 +2167,7 @@ Ship the deploy surface behind `/beta` on the Hetzner VPS, soak for ≥ 24h acro
 
 - [ ] Phase 4 exit gate (T-066) passed
 - [x] S-03 (T-019) DONE: Hetzner + Docker smoke verified (2026-04-21)
-- [ ] S-04 (T-020) DONE — Caddy rate-limit + UptimeRobot verified
+- [x] S-04 (T-020) DONE: Caddy rate-limit + UptimeRobot verified (2026-04-21)
 
 ### Tasks
 

@@ -6,21 +6,21 @@ SSH access, container lifecycle, and the T-019 spike measurement evidence.
 
 ## Instance
 
-| Field | Value |
-| --- | --- |
-| Public hostname | graphwash.dineshd.dev |
-| Public IPv4 | 157.180.94.145 |
-| Public IPv6 | 2a01:4f9:c013:d2de::1 |
-| Instance id | 117529019 |
-| Provisioning hostname | ubuntu-4gb-hel1-1 |
-| Location | Hetzner Cloud, hel1-dc2 (Helsinki, datacentre 2) |
-| Region code | eu-central |
-| OS | Ubuntu 24.04.4 LTS |
-| Kernel | 6.8.0-110-generic |
-| CPU | 4 vCPU AMD EPYC-Genoa shared |
-| RAM | 7.6 GiB |
-| Disk | 75 GB (ext4 on `/dev/sda1`) |
-| Swap | 4 GiB (`/swapfile`, added 2026-04-21 for T-019) |
+| Field                  | Value                                                                  |
+| ---------------------- | ---------------------------------------------------------------------- |
+| Public hostname        | graphwash.dineshd.dev                                                  |
+| Public IPv4            | 157.180.94.145                                                         |
+| Public IPv6            | 2a01:4f9:c013:d2de::1                                                  |
+| Instance id            | 117529019                                                              |
+| Provisioning hostname  | ubuntu-4gb-hel1-1                                                      |
+| Location               | Hetzner Cloud, hel1-dc2 (Helsinki, datacentre 2)                       |
+| Region code            | eu-central                                                             |
+| OS                     | Ubuntu 24.04.4 LTS                                                     |
+| Kernel                 | 6.8.0-110-generic                                                      |
+| CPU                    | 4 vCPU AMD EPYC-Genoa shared                                           |
+| RAM                    | 7.6 GiB                                                                |
+| Disk                   | 75 GB (ext4 on `/dev/sda1`)                                            |
+| Swap                   | 4 GiB (`/swapfile`, added 2026-04-21 for T-019)                        |
 | SSH host key (ed25519) | `AAAAC3NzaC1lZDI1NTE5AAAAIAej0hhEjgVI2n7QhIRGQZCM4R9FMhojD/j3qF3WoGwn` |
 
 The host is shared with `claude-api.service`
@@ -30,28 +30,12 @@ The host is shared with `claude-api.service`
 
 ## Caddy site block
 
-Appended to `/etc/caddy/Caddyfile` on 2026-04-21:
-
-```caddy
-graphwash.dineshd.dev {
-    reverse_proxy 127.0.0.1:8002
-
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
-    }
-
-    log {
-        output file /var/log/caddy/graphwash-access.log {
-            roll_size 10mb
-            roll_keep 5
-        }
-        format json
-    }
-}
-```
+The live `/etc/caddy/Caddyfile` on the VPS is the union of three site
+blocks (graphwash, claude-api, exhibita). Only the graphwash fragment is
+version-controlled in this repo, at
+[`../../ops/graphwash.Caddyfile`](../../ops/graphwash.Caddyfile). Treat
+that file as the source of truth for the graphwash block; the
+co-tenant blocks live only on the host.
 
 Caddy manages TLS automatically via ACME (Let's Encrypt). The access log
 file must be owned by `caddy:caddy` before reload; a reload that creates
@@ -277,3 +261,23 @@ docker rm -f graphwash
 
 Caddy returns 502 for `graphwash.dineshd.dev` but continues serving
 `api.claudehome.dineshd.dev` and `exhibita.dineshd.dev` uninterrupted.
+
+## Caddy binary upgrade
+
+The stock apt-installed Caddy on Ubuntu 24.04 ships without the
+`mholt/caddy-ratelimit` module. The per-IP rate-limit added on
+2026-04-21 (T-020 spike) requires that module, so the binary was
+rebuilt via `xcaddy`.
+
+- Version installed: Caddy v2.11.1 with `mholt/caddy-ratelimit`, built
+  with `xcaddy 0.4.5`.
+- Build tags: `-tags nobadger,nomysql,nopgx` to drop unused storage
+  backends and match the stock apt build size.
+- Original apt binary preserved at `/usr/bin/caddy.apt-backup` (47.4
+  MB) as the rollback target.
+- Linux locks running executables, so an in-place `cp` over
+  `/usr/bin/caddy` while caddy is running fails with `Text file busy`.
+  Always `systemctl stop caddy` before swapping the binary. The brief
+  outage (around 3 seconds) affects all three sites on this VPS;
+  accept that or schedule the swap.
+- Full runbook: [`../../ops/deploy-caddy.md`](../../ops/deploy-caddy.md).

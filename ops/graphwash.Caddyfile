@@ -1,0 +1,26 @@
+graphwash.dineshd.dev {
+    rate_limit {
+        zone graphwash_per_ip {
+            key {remote_host}
+            events 10
+            window 1s
+        }
+    }
+
+    reverse_proxy 127.0.0.1:8002
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    log {
+        output file /var/log/caddy/graphwash-access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
