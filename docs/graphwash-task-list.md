@@ -965,30 +965,31 @@ Ship a reproducible data pipeline: IT-AML Medium downloaded and validated agains
 
 ### Tasks
 
-### T-022 — S-02 IT-AML schema validation [kind:spike]
+### T-022 — S-02 IT-AML HI-Medium schema validation [kind:spike]
 
 Phase: 0
 Links: S-02, REQ-001, PRD §11a, PRD §18 (struck Q: IT-AML Medium schema)
 BlockedBy: T-021
 Blocks: T-023
 Estimate: 0.5d
-Status: pending
+Status: done
 
 What:
-Validate that the Kaggle IT-AML Medium download matches the schema documented in the NeurIPS 2023 paper. Retires the schema unknown before any data-pipeline code is written. Target: 2026-04-22.
+Validate that the Kaggle IT-AML HI-Medium download matches the schema documented in the NeurIPS 2023 paper. Retires the schema unknown before any data-pipeline code is written. Closed 2026-04-22.
 
 Approach / Files:
 
-- Method: verbatim from PRD §11a S-02
-- src/data/schema.py :: captured column names, dtypes, null rates, illicit-label distribution; rename map if non-trivial; docstring records diff vs paper Appendix
+- Method: verbatim from PRD §11a S-02 (executed locally; no GPU required)
+- src/graphwash/data/schema.py :: captured column names, dtypes, null rates, illicit-label distribution; rename map disambiguates the duplicate `Account` header into `from_account` / `to_account`; docstring records diff vs paper Table 4
+- docs/adr/0007-hi-medium-over-li-medium.md :: new ADR locking HI-Medium over LI-Medium
 
 Acceptance:
-[ ] Schema diff (columns / dtypes / null rate / illicit rate) vs paper recorded in `src/data/schema.py` docstring
-[ ] Rename map captured in `src/data/schema.py` if non-trivial
-[ ] Illicit label rate within [1%, 3%] of paper
-[ ] PRD §11a S-02 row moved to DONE
-[ ] Kill signal evaluated: if structural divergence, REQ-001 scope is amended and task list updated before T-023
-[ ] Conventional commit landed on a PR into main
+[x] Schema diff (columns / dtypes / null rate / illicit rate) vs paper recorded in `src/graphwash/data/schema.py` docstring
+[x] Rename map captured in `src/graphwash/data/schema.py` (duplicate `Account` header disambiguated to `from_account` / `to_account`)
+[x] Illicit label rate matches paper Table 4 HI-Medium (1 per 905) within ±10% relative
+[x] PRD §11a S-02 row moved to DONE
+[x] Kill signal fired on ~2% illicit assumption; REQ-001, REQ-002, §1, §14 amended; ADR-0007 added; task list updated before T-023
+[x] Conventional commit landed on a PR into main
 
 ### T-023 — Kaggle credentials + dataset download script [kind:infra]
 

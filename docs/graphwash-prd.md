@@ -33,6 +33,7 @@
 - 2026-04-18 — §19 phase budgets renegotiated to match the granular task list (`docs/graphwash-task-list.md`). Added Pilot Phase row (~7d), updated Phase 0/1/3 budgets to reflect honest per-PR atomic estimates. Focused total raised from 13-20d to ~26d. Deadline feasibility note added (gap vs. 2026-05-31 is ~2d; mitigation enumerated in §19).
 - 2026-04-21: T-019 / S-03 closed. Reused existing hel1-dc2 8 GB VPS; all four acceptance gates cleared (see `docs/ops/hetzner.md`). PRD RAM floor relaxed to ">= 8GB conditional on Phase 2 idle RSS <= 3 GB, else >= 16GB" across REQ-021, §8 P0 NFR row, §9 NFR performance line, §11 assumption 5, §12 dependency row, §13 break-question row 5. ADR-0006 locks the decision.
 - 2026-04-21: T-020 / S-04 closed. Per-IP Caddy rate-limit (10 events / 1 s, key `{remote_host}`) verified live via concurrent burst against `graphwash.dineshd.dev`; UptimeRobot 5-minute keyword monitor on `/api/v1/health` verified with 2 m 57 s DOWN-alert latency. §17 monitoring threshold widened from `> 2 minutes` to `> 5 minutes` because UptimeRobot free-tier minimum interval is 5 min, not 2 min as originally assumed. §18 gains an open question on monitoring vendor for v1.0.
+- 2026-04-22: T-022 / S-02 closed. Raw schema of `HI-Medium_Trans.csv` captured in `src/graphwash/data/schema.py`. Kill signal fired on prior ~2% illicit-rate assumption; paper Table 4 and captured data agree on 1 per 905 (~0.11%). §1, REQ-001, REQ-002, §14 Tradeoff 3, §11a S-02 amended. ADR-0007 locks HI-Medium over LI-Medium for baseline comparability and F1-reachability.
 
 ---
 
@@ -60,7 +61,7 @@ Financial institutions cannot efficiently detect wire transfer money laundering 
 
 ### Technical problem
 
-The IT-AML dataset exhibits extreme class imbalance — approximately 2% illicit transactions. A naive classifier that predicts "legitimate" for every transaction achieves ~98% accuracy while providing zero utility. The only meaningful metric is **minority class F1** (illicit class). IBM's Multi-GNN baseline achieves a published minority class F1 of approximately 0.67 on the IT-AML Medium dataset. Beating this with a heterogeneous architecture that also provides transaction-level explanations is the specific technical challenge.
+The IT-AML dataset exhibits extreme class imbalance — approximately 0.11% illicit transactions (1 per 905 in HI-Medium; paper Table 4). A naive classifier that predicts "legitimate" for every transaction achieves ~99.89% accuracy while providing zero utility. The only meaningful metric is **minority class F1** (illicit class). IBM's Multi-GNN baseline achieves a published minority class F1 of approximately 0.67 on the IT-AML Medium dataset. Beating this with a heterogeneous architecture that also provides transaction-level explanations is the specific technical challenge.
 
 ### Portfolio problem
 
@@ -255,8 +256,8 @@ Edge cases:
 
 Data pipeline
 
-- REQ-001: The system must download and preprocess the IBM IT-AML Medium dataset from Kaggle, constructing a `HeteroData` object with three node types (`individual`, `business`, `bank`) and one edge type (`wire_transfer`) with per-edge features: amount, timestamp, currency flag.
-- REQ-002: The system must apply stratified train/validation/test splits preserving the ~2% illicit class ratio across splits.
+- REQ-001: The system must download and preprocess the IBM IT-AML HI-Medium dataset (see ADR-0007) from Kaggle, constructing a `HeteroData` object with three node types (`individual`, `business`, `bank`) and one edge type (`wire_transfer`) with per-edge features: amount, timestamp, currency flag.
+- REQ-002: The system must apply stratified train/validation/test splits preserving the ~0.11% illicit class ratio across splits.
 - REQ-003: The system must handle class imbalance explicitly via weighted cross-entropy loss, with the positive class weight computed from the training split label distribution.
 
 GraphSAGE baseline
@@ -566,7 +567,7 @@ Formal register of load-bearing unknowns. Each entry is either DONE, MUST RUN (w
 | ---- | ---------------------------------------------------------------------- | ------------- | --------------------- |
 | S-00 | CUDA 13.1 + PyTorch 2.8.0+cu128 + PyG 2.7.0 compat on Vast.ai RTX 5090 | ✅ DONE       | — (closed 2026-04-18) |
 | S-01 | CPU p95 latency feasibility (<200 ms on 500-edge subgraph)             | MUST RUN      | 2026-04-22            |
-| S-02 | IT-AML Medium schema matches NeurIPS 2023 paper                        | MUST RUN      | 2026-04-22            |
+| S-02 | IT-AML HI-Medium schema matches NeurIPS 2023 paper                     | DONE          | closed 2026-04-22     |
 | S-03 | Hetzner VPS + Docker + Caddy viability (8 GB hel1-dc2 reuse)           | DONE          | closed 2026-04-21     |
 | S-04 | Caddy per-IP rate-limit config + UptimeRobot 5-min probe cadence       | DONE          | closed 2026-04-21     |
 | R-01 | HGT beats IBM Multi-GNN baseline (F1 ≥ 0.72)                           | ACCEPTED RISK | End of Phase 2        |
@@ -587,9 +588,10 @@ Closed 2026-04-18 on Vast.ai RTX 5090. `torch.cuda.is_available()` returned true
 
 ### S-02 — IT-AML schema validation
 
+- **Outcome (CLOSED 2026-04-22):** Raw schema of `HI-Medium_Trans.csv` captured locally (no GPU required); columns, dtypes, and illicit rate match paper Table 4 within the amended ±10% relative tolerance. Kill signal fired on prior ~2% illicit-rate assumption; corrected to 1 per 905 (~0.11%) across §1, REQ-002, §14. ADR-0007 locks HI-Medium over LI-Medium. Captured constants live in `src/graphwash/data/schema.py`.
 - **Unknown:** Does the Kaggle IT-AML Medium download match the schema documented in the NeurIPS 2023 paper? Closes §11 assumption 1 and §18 Q2.
 - **Method:** On a fresh Vast.ai instance, `kaggle datasets download`, unzip, load the first 1 k rows of each CSV with pandas. Record column names, dtypes, null rate, illicit-label distribution. Diff against the paper's Appendix.
-- **Success criteria:** Schema matches paper ± trivial column renames (rename map captured in `src/data/schema.py`). Illicit label rate within [1 %, 3 %] of the paper.
+- **Success criteria:** Schema matches paper ± trivial column renames (rename map captured in `src/graphwash/data/schema.py`). Illicit label rate matches paper Table 4 HI-Medium (1 per 905) within ±10% relative.
 - **Kill signal:** Structural divergence (missing columns, different label encoding, different file structure) → REQ-001 data pipeline is rewritten before Phase 1, not discovered mid-Phase-1.
 - **Owner:** Dinesh.
 - **Cross-refs:** REQ-001, §11 assumption 1, §18 Q2.
@@ -680,7 +682,7 @@ Tradeoff 2: AttentionExplainer (native) vs. GNNExplainer (post-hoc)
 We considered GNNExplainer, which perturbs the graph to measure feature importance. We chose to use the HGT's native attention weights as the explainability signal instead. GNNExplainer adds a separate optimization loop per prediction, significantly increasing inference latency. Attention weights are available as a byproduct of the forward pass at zero additional cost. The tradeoff is that attention weights are not guaranteed to be a theoretically rigorous explanation — they are a proxy. For a demo system, this is an acceptable tradeoff. Documented as a known limitation.
 
 Tradeoff 3: IT-AML Medium vs. Large dataset
-IBM provides Small, Medium, and Large variants. The Large dataset would produce a more robust model but requires significantly more training time and GPU memory. Given the $0.406/hr compute constraint and the goal of iterating through hyperparameter sweeps (not just one training run), Medium is the correct choice. The delta in F1 between Medium and Large training sets diminishes with model capacity, and our architecture is 2-layer with hidden dim 64 — not capacity-constrained.
+IBM provides six variants: Small, Medium, and Large, each in HI (higher illicit ratio) and LI (lower illicit ratio) flavours. The Large dataset would produce a more robust model but requires significantly more training time and GPU memory. Given the $0.406/hr compute constraint and the goal of iterating through hyperparameter sweeps (not just one training run), HI-Medium is the correct choice (see ADR-0007). The delta in F1 between Medium and Large training sets diminishes with model capacity, and our architecture is 2-layer with hidden dim 64 — not capacity-constrained.
 
 Tradeoff 4: Vanilla HTML/CSS/JS vs. React frontend
 We considered React for the frontend. We chose vanilla HTML/CSS/JS + D3.js because: (1) D3 is inherently imperative and fights React's declarative rendering model, (2) no build step means the frontend can be served directly as static files from FastAPI without a bundler, and (3) for an ML engineering portfolio, the absence of React is not a weakness — it's a deliberate choice that keeps the focus on the ML system.

@@ -11,6 +11,7 @@ Michael Nygard minimal format. Each ADR captures one irreversible (or costly-to-
 | [0003](0003-it-aml-medium-dataset.md)      | Train on IT-AML Medium, not Small or Large             | Accepted |
 | [0004](0004-vanilla-d3-over-react.md)      | Vanilla HTML/CSS/JS + D3 over React                    | Accepted |
 | [0005](0005-monolith-delivery-model.md)    | Single-process FastAPI monolith serving API + frontend | Accepted |
+| [0007](0007-hi-medium-over-li-medium.md)   | Use IT-AML HI-Medium over LI-Medium                    | Accepted |
 
 ## Format
 
