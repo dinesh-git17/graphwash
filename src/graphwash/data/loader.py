@@ -131,6 +131,21 @@ def _load_raw_csv(csv_path: Path) -> pd.DataFrame:
     return df
 
 
+def _drop_self_loops(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop self-loop rows per PRD section 15.
+
+    Self-loop transfers (account-to-itself) are simulator artifacts
+    with no AML signal. Dropping here, before the composite
+    factorise, also satisfies the adjacent "isolated accounts:
+    exclude" clause for any account whose only raw activity is a
+    self-loop.
+    """
+    self_loop_mask = (df["from_bank"] == df["to_bank"]) & (
+        df["from_account"] == df["to_account"]
+    )
+    return df.loc[~self_loop_mask].reset_index(drop=True)
+
+
 def build_hetero_data(csv_dir: Path) -> HeteroData:
     """Construct the HeteroData object for the IT-AML HI-Medium dataset.
 
