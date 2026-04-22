@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 import torch
+from torch_geometric.data import HeteroData
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -14,6 +15,7 @@ from graphwash.data.loader import (
     _build_node_index_tables,
     _build_wire_transfer_edges,
     _load_raw_csv,
+    build_hetero_data,
 )
 from graphwash.data.schema import RENAME_MAP
 
@@ -118,3 +120,62 @@ def test_currency_flag_matches_cross_currency_rows(fixture_csv_dir: Path) -> Non
         (frame["receiving_currency"] != frame["payment_currency"]).sum()
     )
     assert total_cross == expected_cross
+
+
+def test_build_hetero_data_returns_heterodata_with_required_shape(
+    fixture_csv_dir: Path,
+) -> None:
+    data = build_hetero_data(fixture_csv_dir)
+
+    assert isinstance(data, HeteroData)
+    assert set(data.node_types) == {"individual", "business", "bank"}
+
+    edge_types = set(data.edge_types)
+    assert all(relation == "wire_transfer" for _, relation, _ in edge_types)
+    assert all(
+        src in {"individual", "business"} and dst in {"individual", "business"}
+        for src, _, dst in edge_types
+    )
+
+
+def test_build_hetero_data_node_features_are_placeholder_ones(
+    fixture_csv_dir: Path,
+) -> None:
+    data = build_hetero_data(fixture_csv_dir)
+    for node_type in ("individual", "business", "bank"):
+        store = data[node_type]
+        assert store.num_nodes > 0, node_type
+        assert store.x.shape == (store.num_nodes, 1)
+        assert torch.equal(store.x, torch.ones(store.num_nodes, 1))
+
+
+def test_build_hetero_data_edge_features_carry_required_keys(
+    fixture_csv_dir: Path,
+) -> None:
+    data = build_hetero_data(fixture_csv_dir)
+    for edge_type in data.edge_types:
+        store = data[edge_type]
+        assert store.edge_index.dtype == torch.int64
+        assert store.edge_index.shape[0] == 2
+        assert store.amount.dtype == torch.float32
+        assert store.timestamp.dtype == torch.int64
+        assert store.currency_flag.dtype == torch.int8
+        assert store.y.dtype == torch.int8
+
+
+def test_build_hetero_data_edge_count_matches_fixture(
+    fixture_csv_dir: Path,
+) -> None:
+    data = build_hetero_data(fixture_csv_dir)
+    total = sum(data[edge_type].edge_index.shape[1] for edge_type in data.edge_types)
+    assert total == 1_000
+
+
+def test_build_hetero_data_bank_nodes_are_edge_isolated(
+    fixture_csv_dir: Path,
+) -> None:
+    data = build_hetero_data(fixture_csv_dir)
+    for edge_type in data.edge_types:
+        src_type, _, dst_type = edge_type
+        assert src_type != "bank"
+        assert dst_type != "bank"

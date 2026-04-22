@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 import torch
+from torch_geometric.data import HeteroData
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -180,3 +181,39 @@ def _load_raw_csv(csv_dir: Path) -> pd.DataFrame:
     frame = frame.rename(columns=dict(RENAME_MAP))
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], format=TIMESTAMP_FORMAT)
     return frame
+
+
+def build_hetero_data(csv_dir: Path) -> HeteroData:
+    """Construct the IT-AML HI-Medium graph as a PyG ``HeteroData``.
+
+    Args:
+        csv_dir: Directory containing ``HI-Medium_Trans.csv``.
+
+    Returns:
+        A ``HeteroData`` instance with three node types
+        (``individual``, ``business``, ``bank``) and up to four
+        ``(src, 'wire_transfer', dst)`` edge triplets across
+        ``individual`` and ``business``. ``bank`` nodes are edge-
+        isolated in v1. Node feature tensors ``x`` are placeholder
+        ``torch.ones(N, 1)``. Edge labels (``is_laundering``) are
+        stored on each triplet's ``.y`` tensor.
+    """
+    frame = _load_raw_csv(csv_dir)
+    tables = _build_node_index_tables(frame)
+    edges = _build_wire_transfer_edges(frame, tables)
+
+    data = HeteroData()
+    for node_type in ("individual", "business", "bank"):
+        num_nodes = len(tables[node_type])
+        data[node_type].num_nodes = num_nodes
+        data[node_type].x = torch.ones(num_nodes, 1)
+
+    for triplet, bundle in edges.items():
+        store = data[triplet]
+        store.edge_index = bundle.edge_index
+        store.amount = bundle.amount
+        store.timestamp = bundle.timestamp
+        store.currency_flag = bundle.currency_flag
+        store.y = bundle.is_laundering
+
+    return data
