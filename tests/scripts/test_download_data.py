@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import zipfile
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -12,7 +14,6 @@ from graphwash.data.schema import RAW_FILENAME
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 
 @pytest.fixture
@@ -66,7 +67,6 @@ def test_download_when_file_absent(
         "ealtman2019/ibm-transactions-for-anti-money-laundering-aml",
         RAW_FILENAME,
         path=str(target.parent),
-        unzip=True,
     )
     captured = capsys.readouterr()
     assert "Downloaded" in captured.out
@@ -88,7 +88,6 @@ def test_force_overrides_skip(
         "ealtman2019/ibm-transactions-for-anti-money-laundering-aml",
         RAW_FILENAME,
         path=str(target.parent),
-        unzip=True,
     )
 
 
@@ -104,3 +103,28 @@ def test_mkdir_creates_missing_raw_dir(
 
     assert target.parent.is_dir()
     mock_api.dataset_download_file.assert_called_once()
+
+
+def test_extracts_zip_dropped_by_kaggle_and_removes_it(
+    redirect_destination: Callable[[], Path],
+) -> None:
+    target = redirect_destination()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = b"id,amount\n1,100\n"
+
+    def fake_download(
+        dataset: str,  # noqa: ARG001
+        file_name: str,
+        path: str,
+    ) -> None:
+        zip_path = Path(path) / f"{file_name}.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr(file_name, payload)
+
+    with patch("scripts.download_data.KaggleApi") as mock_api_cls:
+        mock_api_cls.return_value.dataset_download_file.side_effect = fake_download
+        main([])
+
+    assert target.is_file()
+    assert target.read_bytes() == payload
+    assert not (target.parent / f"{RAW_FILENAME}.zip").exists()

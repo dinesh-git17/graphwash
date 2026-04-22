@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -46,8 +47,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         DATASET_SLUG,
         RAW_FILENAME,
         path=str(destination.parent),
-        unzip=True,
     )
+    zipped = destination.parent / f"{RAW_FILENAME}.zip"
+    if zipped.is_file():
+        with zipfile.ZipFile(zipped) as zf:
+            zf.extractall(destination.parent)
+        zipped.unlink()
     print(f"Downloaded data/raw/{RAW_FILENAME}")
 
 
