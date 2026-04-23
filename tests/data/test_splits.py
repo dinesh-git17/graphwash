@@ -60,6 +60,17 @@ def test_non_cpu_input_raises() -> None:
         stratified_split(fake, (1.0, 0.0, 0.0), seed=0)
 
 
+def test_non_binary_labels_raise() -> None:
+    data = HeteroData()
+    data["individual"].x = torch.zeros((1, 2))
+    triplet = ("individual", "wire_transfer", "individual")
+    data[triplet].edge_index = torch.zeros((2, 4), dtype=torch.long)
+    data[triplet].y = torch.tensor([0, 2, 1, 0], dtype=torch.int8)
+
+    with pytest.raises(ValueError, match="binary"):
+        stratified_split(data, (0.7, 0.15, 0.15), seed=0)
+
+
 def empty_wire_transfer_data() -> HeteroData:
     """HeteroData with no wire_transfer triplets.
 

@@ -88,6 +88,20 @@ def _build_supervision_pool(
     return source_triplets, y_global, triplet_of, local_of
 
 
+def _validate_binary_labels(y_global: Tensor) -> None:
+    """Reject supervision pools containing labels outside ``{0, 1}``."""
+    if y_global.numel() == 0:
+        return
+    non_binary = (y_global != 0) & (y_global != 1)
+    n_bad = int(non_binary.sum().item())
+    if n_bad > 0:
+        msg = (
+            f"wire_transfer y must be binary (0 or 1); "
+            f"got {n_bad} non-binary value(s) in the supervision pool"
+        )
+        raise ValueError(msg)
+
+
 def _compute_assignment(
     y_global: Tensor,
     ratios: tuple[float, float, float],
@@ -190,7 +204,8 @@ def stratified_split(
         Three HeteroData objects in ``(train, val, test)`` order.
 
     Raises:
-        ValueError: on invalid ``ratios`` or non-CPU input tensors.
+        ValueError: on invalid ``ratios``, non-CPU input tensors, or
+            non-binary ``y`` values (must be 0 or 1).
     """
     _validate_ratios(ratios)
     _check_cpu_device(data)
@@ -198,6 +213,7 @@ def stratified_split(
     source_triplets, y_global, triplet_of, local_of = _build_supervision_pool(
         data,
     )
+    _validate_binary_labels(y_global)
     gen = torch.Generator()
     gen.manual_seed(seed)
     assignment = _compute_assignment(y_global, ratios, gen)

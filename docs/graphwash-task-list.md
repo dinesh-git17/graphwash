@@ -1069,7 +1069,7 @@ Links: REQ-002
 BlockedBy: T-024
 Blocks: T-026, T-029
 Estimate: 0.25d
-Status: done
+Status: in_progress
 
 What:
 Deterministic stratified splits preserving the observed ~0.11% illicit ratio across train/val/test.
