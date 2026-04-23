@@ -1069,21 +1069,21 @@ Links: REQ-002
 BlockedBy: T-024
 Blocks: T-026, T-029
 Estimate: 0.25d
-Status: pending
+Status: done
 
 What:
-Deterministic stratified splits preserving the ~2% illicit ratio across train/val/test.
+Deterministic stratified splits preserving the observed ~0.11% illicit ratio across train/val/test.
 
 Approach / Files:
 
-- src/data/splits.py :: `stratified_split(data: HeteroData, ratios: tuple[float, float, float], seed: int) -> tuple[HeteroData, HeteroData, HeteroData]`
-- tests/data/test_splits.py :: split sizes sum to 100%; illicit ratio within ±0.5% across splits; seed reproduces splits bit-for-bit
+- src/graphwash/data/splits.py :: `stratified_split(data: HeteroData, ratios: tuple[float, float, float], seed: int) -> tuple[HeteroData, HeteroData, HeteroData]`
+- tests/data/test_splits.py :: split sizes sum to 100%; illicit ratio preserved within 0.5% relative of the observed global rate across splits; seed reproduces splits bit-for-bit
 
 Acceptance:
-[ ] Split sizes sum to 100%
-[ ] Illicit class ratio preserved within ±0.5% across train/val/test
-[ ] Same seed produces identical splits across runs
-[ ] ruff + mypy --strict clean; pytest green
+[x] Split sizes sum to 100%
+[x] Illicit class ratio preserved within 0.5% relative of the observed global rate across train/val/test
+[x] Same seed produces identical splits across runs
+[x] ruff + mypy --strict clean; pytest green
 [ ] Conventional commit landed on a PR into main
 
 ### T-026 — Class weight computation [kind:impl]
