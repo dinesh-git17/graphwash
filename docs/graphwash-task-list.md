@@ -1069,7 +1069,7 @@ Links: REQ-002
 BlockedBy: T-024
 Blocks: T-026, T-029
 Estimate: 0.25d
-Status: in_progress
+Status: done
 
 What:
 Deterministic stratified splits preserving the observed ~0.11% illicit ratio across train/val/test.
@@ -1084,7 +1084,7 @@ Acceptance:
 [x] Illicit class ratio preserved within 0.5% relative of the observed global rate across train/val/test
 [x] Same seed produces identical splits across runs
 [x] ruff + mypy --strict clean; pytest green
-[ ] Conventional commit landed on a PR into main
+[x] Conventional commit landed on a PR into main (PR #40, merged 2026-04-23)
 
 ### T-026 — Class weight computation [kind:impl]
 
